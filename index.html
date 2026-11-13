@@ -74,8 +74,8 @@ code{font:inherit}
 .controls{display:grid;gap:15px}
 .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .row .grow{flex:1}
-.seg{display:inline-grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{min-width:58px;min-height:40px;border:0;background:none;font-weight:800;font-size:14px}
+.seg{display:inline-grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-width:48px;min-height:40px;border:0;background:none;font-weight:800;font-size:14px}
 .seg button[aria-checked="true"]{background:var(--ink);color:var(--on-ink)}
 .btn{min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:none;font-weight:700;font-size:12px}
 .slider{display:grid;gap:4px}
@@ -110,7 +110,17 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
 .lh .lname{grid-row:1;grid-column:2}
 .lh .mute{grid-row:1;grid-column:3}
 .lh .reroll{grid-row:1;grid-column:4}
-.lh .src{grid-row:2;grid-column:2/-1}
+.lh .lctl{grid-row:2;grid-column:2/-1}
+.lh .src{grid-row:3;grid-column:2/-1}
+.kick .lh .src{grid-row:2}
+.lctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.lctl .grp{display:inline-flex;align-items:center;gap:6px}
+.lctl .grp.g{margin-left:auto}
+.stepper{display:inline-flex;align-items:center;gap:3px}
+.ib.sm{width:32px;height:32px;font-size:16px}
+.lctl .sel{flex:none;min-height:32px;padding:0 4px 0 6px}
+.lctl .sel.len{width:54px}
+.lctl .sel.gate{width:66px}
 .num{width:24px;height:24px;border-radius:6px;background:var(--c);color:var(--on-ink);display:grid;place-items:center;font-weight:800;font-size:12px}
 .lname{font:800 20px/1 var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--c)}
 .lname small{display:inline-block;margin-left:8px;font:400 11px var(--mono);letter-spacing:0;text-transform:none;color:var(--dim)}
@@ -134,6 +144,12 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
 .cell.on{background:var(--c)}
 .cell.now{border-color:var(--ink)}
 .cell.on.now{filter:brightness(1.2) saturate(1.1);box-shadow:0 0 0 1px var(--ink),0 0 16px var(--c)}
+/* held steps: the note's length drawn as a bar through the cells it covers */
+.lane:not(.kick) .cell{touch-action:pan-y}
+.cell.tail::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--c);opacity:.26}
+.cell.tail::after{content:"";position:absolute;left:-6px;right:-6px;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--c)}
+.cell.tail.end::after{right:28%}
+.cell.out{opacity:.3}
 .lane.muted .grid{opacity:.33}
 .kick .cell{aspect-ratio:auto;height:9px;border:0;border-radius:3px}
 .kick .cell.on{background:#6d655b}
@@ -192,10 +208,12 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
 
     <section class="panel controls" aria-label="Pattern settings">
       <div class="row">
-        <span class="lbl" id="stepsLbl">Steps</span>
+        <span class="lbl" id="stepsLbl">Pattern</span>
         <div class="seg" role="radiogroup" aria-labelledby="stepsLbl">
           <button type="button" role="radio" id="s16" data-steps="16" aria-checked="true">16</button>
           <button type="button" role="radio" id="s32" data-steps="32" aria-checked="false">32</button>
+          <button type="button" role="radio" id="s64" data-steps="64" aria-checked="false">64</button>
+          <button type="button" role="radio" id="s128" data-steps="128" aria-checked="false">128</button>
         </div>
         <span class="grow"></span>
         <button type="button" class="btn" id="copy">Copy as Coypu</button>
@@ -233,7 +251,9 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
   <main class="main">
     <section class="panel seq" id="lanes" aria-label="Sequencer"></section>
     <footer class="foot">
-      <p><b>Notes.</b> Each note is weighted by its consonance with the chord, the strength of its step (root, third and fifth on the beat), stepwise voice leading and its interval against the bass. 32 steps adds a second chord in bar 2. Tap a step to switch it.</p>
+      <p><b>Notes.</b> Each note is weighted by its consonance with the chord, the strength of its step (root, third and fifth on the beat), stepwise voice leading and its interval against the bass. Every bar of the pattern gets a chord; 64 and 128 steps repeat a 4-bar progression.</p>
+      <p><b>Lengths.</b> The pattern (16 to 128 steps) restarts every lane when it ends. Each lane loops on its own length, 3 to 64 steps, so lanes can drift against each other; a note that repeats over several chords is chosen to fit all of them. Lanes that match the pattern length follow it when you change it.</p>
+      <p><b>Durations.</b> Each note lasts a number of steps, at most until the next note of its lane, so lanes stay monophonic. Tap a step to switch it. Drag a note to the right to hold it longer, drag back to shorten it, or use Shift + arrow keys. Tap a held step to start a new note there. Gate is the share of the length that sounds. Both export to Coypu as <code>durations:</code> and <code>gateTimes:</code>.</p>
       <p><b>Notation.</b> C4 = MIDI 60. ↑ ↓ raise or lower a quarter tone. Partch notes show cents from 12-TET.</p>
       <p><b>MIDI.</b> Saw, Square and Tri go out on channels 1, 2 and 3; muted lanes send nothing, the kick stays local. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
       <p><b>Sources.</b> Scales: SuperCollider <code>Scale.directory</code>. Rhythms: the world rhythms of Coypu, random ones follow <code>randomTrigsWithProbability:</code>.</p>
@@ -427,8 +447,11 @@ const ANCHORS = [
   [5.83, .25], [5.5, .24], [6.17, .22], [6.49, .2], [6.5, .2], [6, .18], [11.5, .16],
   [1.12, .12], [1, .12], [.5, .1],
 ];
+const consMemo = new Map();   // polymetric lanes ask for the same intervals many times
 function cons(iv) {
-  const x = mod12(iv);
+  const x = mod12(iv), key = Math.round(x * 1e4);
+  const hit = consMemo.get(key);
+  if (hit !== undefined) return hit;
   let best = .05;
   for (const [a, w] of ANCHORS) {
     let d = Math.abs(x - a);
@@ -437,6 +460,7 @@ function cons(iv) {
     const v = w * Math.exp(-d * d * 44.4);
     if (v > best) best = v;
   }
+  consMemo.set(key, best);
   return best;
 }
 
@@ -587,37 +611,97 @@ function pickChordDegree(ctx) {
   });
   return wpick(idx, ws);
 }
-function makeHarmony(ctx, N) {
-  const h = [chordOn(ctx, ctx.tonic)];
-  if (N === 32) h.push(Math.random() < .3 ? h[0] : chordOn(ctx, pickChordDegree(ctx)));
+// One chord per bar. Up to 4 bars the progression is new; 8 bars repeat it, sometimes with a
+// different last bar as a turnaround.
+function makeHarmony(ctx, bars) {
+  const T = chordOn(ctx, ctx.tonic);
+  if (bars <= 1) return [T];
+  const P = Math.min(bars, 4), phrase = [T];
+  while (phrase.length < P) phrase.push(Math.random() < (P === 2 ? .3 : .15) ? T : chordOn(ctx, pickChordDegree(ctx)));
+  const h = Array.from({ length: bars }, (_, b) => phrase[b % P]);
+  if (bars > P && Math.random() < .5) h[bars - 1] = chordOn(ctx, pickChordDegree(ctx));
   return h;
+}
+
+/* ============================== LENGTHS =========================== */
+// The pattern (MASTERS) sets the chord bars and restarts every lane when it ends. Each lane loops
+// on its own length (MINL..MAXL) inside it. Lanes store MAXL steps, so shortening a lane and
+// lengthening it again brings the same steps back.
+const MASTERS = [16, 32, 64, 128], MINL = 3, MAXL = 64;
+const barsOf = M => Math.ceil(M / 16);
+const chordAt = (harmony, g) => harmony[Math.floor(g / 16) % harmony.length];
+// pattern positions where lane step i is heard (a step past the pattern end is judged where it sits)
+function occ(i, L, M) {
+  const out = [];
+  for (let g = i; g < M; g += L) out.push(g);
+  return out.length ? out : [i];
+}
+const isNote = (tr, i) => !!(tr.gates[i] && tr.notes[i]);
+// steps from note i to the next note in the lane's own loop
+function gapIn(tr, i) {
+  const L = tr.len;
+  for (let d = 1; d < L; d++) if (isNote(tr, (i + d) % L)) return d;
+  return L;
+}
+// steps from pattern step g to this lane's next note while playing (the lane restarts at the pattern end)
+function gapAhead(tr, g, M) {
+  for (let d = 1; d <= M; d++) { const g2 = (g + d) % M; if (isNote(tr, g2 % tr.len)) return d; }
+  return M;
+}
+// a note never outlasts the gap to the next one, so lanes stay monophonic (as Coypu's asSeq does)
+const effDur = (tr, i) => Math.max(1, Math.min(tr.dur[i] || 1, gapIn(tr, i)));
+// for each step: the note holding it (-1 if none), and whether it is the note's last step
+function coverage(tr) {
+  const L = tr.len, owner = Array(L).fill(-1), end = Array(L).fill(false);
+  for (let i = 0; i < L; i++) {
+    if (!isNote(tr, i)) continue;
+    const d = effDur(tr, i);
+    for (let s = 1; s < d; s++) { const j = (i + s) % L; owner[j] = i; end[j] = s === d - 1; }
+  }
+  return { owner, end };
 }
 
 /* ============================== RHYTHM ============================ */
 const tile = (pat, N) => Array.from({ length: N }, (_, i) => pat[i % pat.length]);
 const count = g => g.reduce((a, b) => a + b, 0);
-function makeRhythm(N, pRandom, used) {
-  if (Math.random() < pRandom) {
-    const prob = Math.round(rand(15, 70));
-    let g, tries = 0;
-    do { g = Array.from({ length: N }, () => (Math.random() < prob / 100 ? 1 : 0)); } while (count(g) < 2 && ++tries < 40);
-    if (count(g) < 2) { g[0] = 1; g[N / 2] = 1; }
-    return { gates: g, src: { kind: "random", prob } };
+// Gates are made for all MAXL steps; at least two hits must fall inside the lane length L.
+// A world rhythm is tiled, so the first L steps are exactly Coypu's `L name`.
+function makeRhythm(L, pRandom, used) {
+  if (Math.random() >= pRandom) {
+    const fits = w => count(tile(w.pat, L)) >= 2;
+    const fresh = WORLD.filter(w => !used.has(w.name) && fits(w));
+    const w = pick(fresh.length ? fresh : WORLD.filter(fits));
+    if (w) {
+      used.add(w.name);
+      return { gates: tile(w.pat, MAXL), src: { kind: "world", name: w.name, origin: w.origin } };
+    }
   }
-  const pool = WORLD.filter(w => !used.has(w.name));
-  const w = pick(pool.length ? pool : WORLD);
-  used.add(w.name);
-  return { gates: tile(w.pat, N), src: { kind: "world", name: w.name, origin: w.origin } };
+  const prob = Math.round(rand(15, 70));
+  let g, tries = 0;
+  do { g = Array.from({ length: MAXL }, () => (Math.random() < prob / 100 ? 1 : 0)); } while (count(g.slice(0, L)) < 2 && ++tries < 40);
+  if (count(g.slice(0, L)) < 2) { g[0] = 1; g[Math.floor(L / 2)] = 1; }
+  return { gates: g, src: { kind: "random", prob } };
 }
 
 /* =============================== NOTES ============================ */
+// hold: notes usually last until the next one, up to this many steps; maxDur, longP: occasional
+// long notes, likelier on strong beats; shortP: chance of a single step; gf: gate range (gateTimes)
 const ROLE = [
-  { key: "saw", name: "Saw", role: "bass", lo: 24, hi: 48, spread: 10, tau: 1.45, hold: 2, gf: [.5, .9] },
-  { key: "square", name: "Square", role: "mid", lo: 48, hi: 70, center: 59, spread: 7, tau: 1.2, hold: 2, gf: [.35, .8] },
-  { key: "tri", name: "Tri", role: "lead", lo: 62, hi: 86, center: 73, spread: 8, tau: 1.15, hold: 3, gf: [.55, .95] },
+  { key: "saw", name: "Saw", role: "bass", lo: 24, hi: 48, spread: 10, tau: 1.45, hold: 2, maxDur: 4, longP: .15, shortP: .35, gf: [.55, .9] },
+  { key: "square", name: "Square", role: "mid", lo: 48, hi: 70, center: 59, spread: 7, tau: 1.2, hold: 2, maxDur: 4, longP: .2, shortP: .3, gf: [.45, .85] },
+  { key: "tri", name: "Tri", role: "lead", lo: 62, hi: 86, center: 73, spread: 8, tau: 1.15, hold: 3, maxDur: 8, longP: .35, shortP: .15, gf: [.6, .95] },
 ];
 // Metric weight of each 16th in a bar
 const BEAT = [1, .2, .45, .25, .75, .2, .45, .25, .9, .2, .45, .25, .75, .2, .45, .25];
+const roundGate = x => clamp(Math.round(x * 20) / 20, .25, 1);
+const randGate = R => roundGate(rand(R.gf[0], R.gf[1]));
+function genDur(R, step, gap) {
+  const cap = Math.min(gap, R.maxDur);
+  let d = Math.min(gap, R.hold);
+  if (cap > d && Math.random() < R.longP * (.4 + BEAT[step % 16])) d += 1 + Math.floor(Math.random() * (cap - d));
+  else if (d > 1 && Math.random() < R.shortP) d = 1;
+  return d;
+}
 
 function poolFor(ctx, lo, hi) {
   const out = [];
@@ -652,78 +736,97 @@ function melodic(p, prev, role, lastLeap, pool) {
   }
   return w;
 }
-function noteWeights(k, pool, step, o, harmony, ctx) {
+// o.occ: the pattern positions where this step is heard. With lanes shorter than the pattern a
+// step comes back over several chords, so the vertical fit (chord, metric strength, bass, mid)
+// is a geometric mean over all of them: one bad clash pulls a note down.
+function noteWeights(k, pool, o, harmony, ctx) {
   const R = ROLE[k];
-  const chord = harmony[Math.floor(step / 16) % harmony.length];
-  const s = BEAT[step % 16];
-  const chordRoot = ctx.rootPc + chord.r;
-  const bassNow = o.refs.bassAt ? o.refs.bassAt[step] : null;
-  const midNow = o.refs.midAt ? o.refs.midAt[step] : null;
+  const per = o.occ.map(g => {
+    const chord = chordAt(harmony, g), s = BEAT[g % 16];
+    let e = R.role === "bass" ? .8 + 2.4 * s : .5 + 1.8 * s;
+    if (o.isFirst) e = Math.max(e, R.role === "bass" ? 2.6 : 1.6);
+    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, bass: o.refs.bassAt[g] ?? null, mid: o.refs.midAt[g] ?? null };
+  });
+  const chord0 = chordAt(harmony, o.occ[0]);
   let center = R.center;
-  if (R.role === "bass") { const low = pool.find(p => p.d.ai === chord.j); center = (low ? low.m : R.lo + 5) + 5; }
-  let e = R.role === "bass" ? .8 + 2.4 * s : .5 + 1.8 * s;
-  if (o.isFirst) e = Math.max(e, R.role === "bass" ? 2.6 : 1.6);
+  if (R.role === "bass") { const low = pool.find(p => p.d.ai === chord0.j); center = (low ? low.m : R.lo + 5) + 5; }
   return pool.map(p => {
-    let h = cons(p.m - chordRoot);
-    if (chord.tones.has(p.d.ai)) h += (1 - h) * .45;
-    let w = Math.pow(h, e);
     if (o.prev) {
       const L = p.m - o.prev.m;
       if ((L > 1e-6 && !p.d.asc) || (L < -1e-6 && !p.d.desc)) return 0;
+    } else if (!p.d.asc) return 0;
+    let lw = 0;
+    for (const q of per) {
+      let h = cons(p.m - q.root);
+      if (q.tones.has(p.d.ai)) h += (1 - h) * .45;
+      let v = Math.pow(h, q.e);
+      if (R.role !== "bass" && q.bass != null) v *= Math.pow(cons(p.m - q.bass), 1.3);
+      if (R.role === "lead" && q.mid != null) {
+        v *= Math.pow(cons(p.m - q.mid), 1.1);
+        if (near(p.m, q.mid)) v *= .25;
+      }
+      lw += Math.log(v + 1e-12);
+    }
+    let w = Math.exp(lw / per.length);
+    if (o.prev) {
       w *= melodic(p, o.prev, R.role, o.lastLeap, pool);
       if (near(p.m, o.prev.m)) w *= R.role === "bass" ? Math.pow(.8, Math.max(0, (o.run || 1) - 1)) : Math.pow(.5, o.run || 1);
-    } else if (!p.d.asc) return 0;
-    if (o.next) w *= .45 + .55 * melodic(o.next, p, R.role, 0, pool);   // lead back into the loop
-    if (R.role !== "bass" && bassNow != null) w *= Math.pow(cons(p.m - bassNow), 1.3);
-    if (R.role === "lead" && midNow != null) {
-      w *= Math.pow(cons(p.m - midNow), 1.1);
-      if (near(p.m, midNow)) w *= .25;
     }
+    if (o.next) w *= .45 + .55 * melodic(o.next, p, R.role, 0, pool);   // lead back into the loop
     const z = (p.m - center) / R.spread;
     return w * Math.exp(-z * z);
   });
 }
+// What the bass and mid play at each pattern position, following each lane's own loop.
+// Positions past the pattern end are filled too, for lane steps the pattern never reaches.
 function refs() {
-  const N = state.steps, T = state.tracks;
-  const bassAt = Array(N).fill(null), midAt = Array(N).fill(null);
+  const G = Math.max(state.steps, MAXL), T = state.tracks;
+  const bassAt = Array(G).fill(null), midAt = Array(G).fill(null);
   const b = T[0];
   if (b && b.notes) {
+    const L = b.len, held = Array(L).fill(null);
     let last = null;
-    for (let i = 0; i < N; i++) if (b.gates[i] && b.notes[i]) last = b.notes[i].m;
-    for (let i = 0; i < N; i++) { if (b.gates[i] && b.notes[i]) last = b.notes[i].m; bassAt[i] = last; }
+    for (let i = 0; i < L; i++) if (isNote(b, i)) last = b.notes[i].m;   // the loop's last note carries into its start
+    for (let i = 0; i < L; i++) { if (isNote(b, i)) last = b.notes[i].m; held[i] = last; }
+    for (let g = 0; g < G; g++) bassAt[g] = held[g % L];
   }
   const md = T[1];
-  if (md && md.notes) for (let i = 0; i < N; i++) if (md.gates[i] && md.notes[i]) midAt[i] = md.notes[i].m;
+  if (md && md.notes) for (let g = 0; g < G; g++) { const i = g % md.len; if (isNote(md, i)) midAt[g] = md.notes[i].m; }
   return { bassAt, midAt };
 }
-function genNotes(k, gates, ctx, harmony, rf) {
-  const R = ROLE[k], N = gates.length, pool = poolFor(ctx, R.lo, R.hi);
-  const notes = Array(N).fill(null), vel = Array(N).fill(0);
+// Notes, velocities and durations for steps 0..len-1 of lane k; steps past its length are cleared
+// and get notes when the lane grows over them.
+function genNotes(k, tr, ctx, harmony, rf) {
+  const R = ROLE[k], L = tr.len, M = state.steps, pool = poolFor(ctx, R.lo, R.hi);
+  tr.notes.fill(null);
   const hits = [];
-  gates.forEach((g, i) => { if (g) hits.push(i); });
+  for (let i = 0; i < L; i++) if (tr.gates[i]) hits.push(i);
   let prev = null, lastLeap = 0, first = null, run = 0;
   hits.forEach((step, h) => {
-    const bar = Math.floor(step / 16);
-    const newBar = h === 0 || Math.floor(hits[h - 1] / 16) !== bar;
+    const oc = occ(step, L, M);
+    const newBar = h === 0 || Math.floor(hits[h - 1] / 16) !== Math.floor(step / 16);
     let c = null;
-    if (R.role === "bass" && newBar && Math.random() < .85) {          // anchor each bar on the chord root
-      const chord = harmony[bar % harmony.length];
-      const roots = pool.filter(p => p.d.ai === chord.j);
-      if (roots.length) c = roots.length > 1 && Math.random() < .2 ? roots[1] : roots[0];
+    if (R.role === "bass" && newBar && Math.random() < .85) {          // anchor each bar on the chord root...
+      const js = new Set(oc.map(g => chordAt(harmony, g).j));
+      if (js.size === 1) {                                              // ...when it meets the same chord every time
+        const j = oc.length ? chordAt(harmony, oc[0]).j : 0;
+        const roots = pool.filter(p => p.d.ai === j);
+        if (roots.length) c = roots.length > 1 && Math.random() < .2 ? roots[1] : roots[0];
+      }
     }
     if (!c) {
       const isLast = h === hits.length - 1 && hits.length > 2;
-      const ws = noteWeights(k, pool, step, { prev, lastLeap, run, next: isLast ? first : null, isFirst: h === 0, refs: rf }, harmony, ctx);
+      const ws = noteWeights(k, pool, { occ: oc, prev, lastLeap, run, next: isLast ? first : null, isFirst: h === 0, refs: rf }, harmony, ctx);
       c = wpick(pool, ws.map(w => Math.pow(w, R.tau)));
     }
     if (prev) lastLeap = c.m - prev.m;
     run = prev && near(c.m, prev.m) ? run + 1 : 1;
     prev = c;
     if (!first) first = c;
-    notes[step] = c;
-    vel[step] = clamp(.7 + .3 * BEAT[step % 16] + rand(-.06, .06), .45, 1);
+    tr.notes[step] = c;
+    tr.vel[step] = clamp(.7 + .3 * BEAT[step % 16] + rand(-.06, .06), .45, 1);
   });
-  return { notes, vel };
+  hits.forEach(step => { tr.dur[step] = genDur(R, step, gapIn(tr, step)); });
 }
 
 /* =============================== STATE ============================ */
@@ -735,18 +838,22 @@ function pickScale() {
   do { s = pick(list); } while (list.length > 1 && state.ctx && s.key === state.ctx.scale.key);
   return s;
 }
+// A lane keeps its length and, once you have set it, its gate across rerolls.
 function genTrack(k, used) {
   const R = ROLE[k], old = state.tracks[k];
-  const r = makeRhythm(state.steps, state.rnd / 100, used);
-  const tr = { gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false, gateFrac: rand(R.gf[0], R.gf[1]), notes: null, vel: null };
+  const len = old ? old.len : Math.min(state.steps, MAXL);
+  const r = makeRhythm(len, state.rnd / 100, used);
+  const tr = {
+    len, gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false,
+    gate: old && old.gateSet ? old.gate : randGate(R), gateSet: !!(old && old.gateSet),
+    notes: Array(MAXL).fill(null), vel: Array(MAXL).fill(0), dur: Array(MAXL).fill(1),
+  };
   state.tracks[k] = tr;
-  const g = genNotes(k, tr.gates, state.ctx, state.harmony, refs());
-  tr.notes = g.notes;
-  tr.vel = g.vel;
+  genNotes(k, tr, state.ctx, state.harmony, refs());
   return tr;
 }
 function regenerateState() {
-  state.harmony = makeHarmony(state.ctx, state.steps);
+  state.harmony = makeHarmony(state.ctx, barsOf(state.steps));
   const used = new Set();
   for (let k = 0; k < 3; k++) genTrack(k, used);
 }
@@ -758,37 +865,93 @@ function rerollTrackState(k) {
   const used = new Set(state.tracks.filter((t, i) => i !== k && t.src.kind === "world").map(t => t.src.name));
   genTrack(k, used);
 }
+// New pattern length: new chords for the new number of bars, lanes that matched the old length
+// follow it, rhythms stay, notes and durations are picked again for the new chords.
+function setMasterState(M) {
+  if (!MASTERS.includes(M) || M === state.steps) return false;
+  const follow = Math.min(state.steps, MAXL);
+  state.steps = M;
+  state.tracks.forEach(tr => { if (tr.len === follow) tr.len = Math.min(M, MAXL); });
+  state.harmony = makeHarmony(state.ctx, barsOf(M));
+  for (let k = 0; k < 3; k++) genNotes(k, state.tracks[k], state.ctx, state.harmony, refs());
+  return true;
+}
+// Lane length: shorter hides steps without deleting them; longer brings back the hidden steps,
+// or continues the rhythm with new notes where there were none.
+function setTrackLenState(k, n) {
+  const tr = state.tracks[k], old = tr.len;
+  n = clamp(Math.round(n) || old, MINL, MAXL);
+  if (n === old) return false;
+  tr.len = n;
+  const fresh = [];
+  for (let i = old; i < n; i++) if (tr.gates[i] && !tr.notes[i]) { pickNoteAt(k, i); fresh.push(i); }
+  fresh.forEach(i => { tr.dur[i] = genDur(ROLE[k], i, gapIn(tr, i)); });
+  return true;
+}
+function pickNoteAt(k, i) {
+  const tr = state.tracks[k], R = ROLE[k], L = tr.len, pool = poolFor(state.ctx, R.lo, R.hi);
+  let prev = null, next = null;
+  for (let d = 1; d < L && !prev; d++) { const j = (i - d + L) % L; if (isNote(tr, j)) prev = tr.notes[j]; }
+  for (let d = 1; d < L && !next; d++) { const j = (i + d) % L; if (isNote(tr, j)) next = tr.notes[j]; }
+  const ws = noteWeights(k, pool, { occ: occ(i, L, state.steps), prev, lastLeap: 0, next, isFirst: !prev, refs: refs() }, state.harmony, state.ctx);
+  tr.notes[i] = wpick(pool, ws.map(w => Math.pow(w, R.tau)));
+  tr.vel[i] = clamp(.7 + .3 * BEAT[i % 16], .45, 1);
+}
+// A tap on a note removes it; on an empty or held step it starts a one-step note there.
 function toggleStepState(k, i) {
-  const tr = state.tracks[k], N = state.steps, R = ROLE[k];
-  if (tr.gates[i]) { tr.gates[i] = 0; tr.notes[i] = null; }
-  else {
-    tr.gates[i] = 1;
-    const pool = poolFor(state.ctx, R.lo, R.hi);
-    let prev = null, next = null;
-    for (let d = 1; d < N && !prev; d++) { const j = (i - d + N) % N; if (tr.gates[j] && tr.notes[j]) prev = tr.notes[j]; }
-    for (let d = 1; d < N && !next; d++) { const j = (i + d) % N; if (tr.gates[j] && tr.notes[j]) next = tr.notes[j]; }
-    const ws = noteWeights(k, pool, i, { prev, lastLeap: 0, next, isFirst: !prev, refs: refs() }, state.harmony, state.ctx);
-    tr.notes[i] = wpick(pool, ws.map(w => Math.pow(w, R.tau)));
-    tr.vel[i] = clamp(.7 + .3 * BEAT[i % 16], .45, 1);
-  }
+  const tr = state.tracks[k];
+  if (isNote(tr, i)) { tr.gates[i] = 0; tr.notes[i] = null; }
+  else { tr.gates[i] = 1; pickNoteAt(k, i); tr.dur[i] = 1; }
   tr.edited = true;
 }
+// note under step i: itself, the note holding it, or -1
+function ownerOf(tr, i) { return isNote(tr, i) ? i : coverage(tr).owner[i]; }
+function setDurState(k, i, d) {
+  const tr = state.tracks[k];
+  if (!isNote(tr, i)) return false;
+  const v = clamp(Math.round(d), 1, gapIn(tr, i));
+  if (v === effDur(tr, i) && v === tr.dur[i]) return false;
+  tr.dur[i] = v;
+  return true;
+}
+// length of note `own` when dragged to step j: up to j going forward (across the loop end too),
+// the most it can have when dragged past the next note, one step when dragged back before it
+function dragDur(tr, own, j) {
+  const L = tr.len, gap = gapIn(tr, own), f = (j - own + L) % L;
+  if (f < gap) return f + 1;
+  return j > own ? gap : 1;
+}
 const fmtNote = m => (near(m, Math.round(m)) ? String(Math.round(m)) : String(Math.round(m * 100) / 100));
+const fmtNum = x => String(Math.round(x * 100) / 100);
 const asciiName = s => s.replace(/♯/g, "#").replace(/♭/g, "b").replace(/↑/g, "+").replace(/↓/g, "-");
+// Notes of a lane over `span` steps as Coypu plays them: one entry per trig, with its length
+// cut at the next trig. Coypu loops each sequencer on its own size with no pattern restart, so a
+// lane whose length does not divide the pattern is written out over the whole pattern.
+function laneEvents(tr, span) {
+  const ev = [];
+  for (let g = 0; g < span; g++) {
+    const i = g % tr.len;
+    if (isNote(tr, i)) ev.push({ g, m: tr.notes[i].m, d: Math.min(tr.dur[i] || 1, gapAhead(tr, g, span)) });
+  }
+  return ev;
+}
 function coypuCode() {
-  const N = state.steps, ctx = state.ctx;
+  const M = state.steps, ctx = state.ctx;
   const L = [];
-  L.push(`"Scale Dice: ${asciiName(pcName(ctx.root))} ${ctx.scale.key} (Scale.${ctx.scale.key}), ${state.bpm} bpm. Rename the track keys to your instruments."`);
+  L.push(`"Scale Dice: ${asciiName(pcName(ctx.root))} ${ctx.scale.key} (Scale.${ctx.scale.key}), ${state.bpm} bpm, ${M}-step pattern. Rename the track keys to your instruments. durations: are in steps, gateTimes: is the share of each duration that sounds."`);
   L.push("p := Performance uniqueInstance.");
   L.push(`p freq: ${state.bpm} bpm.`);
-  if (state.kickOn) L.push(`${N} downbeats to: #kick.`);
+  if (state.kickOn) L.push(`${M} downbeats to: #kick.`);
   state.tracks.forEach((tr, k) => {
-    const notes = [];
-    tr.gates.forEach((g, i) => { if (g && tr.notes[i]) notes.push(fmtNote(tr.notes[i].m)); });
-    const rhythm = tr.src.kind === "world" && !tr.edited ? `${N} ${tr.src.name}` : `#(${tr.gates.join(" ")}) asSeq`;
-    L.push(`${tr.muted ? '"muted" ' : ""}${rhythm} notes: #(${notes.join(" ")}) to: #${ROLE[k].key}.`);
+    const n = tr.len, fits = M % n === 0, span = fits ? n : M, key = ROLE[k].key;
+    const ev = laneEvents(tr, span);
+    if (!ev.length) { L.push(`"${key}: no notes"`); return; }
+    const gates = Array.from({ length: span }, (_, g) => (isNote(tr, g % n) ? 1 : 0));
+    const rhythm = fits && tr.src.kind === "world" && !tr.edited ? `${n} ${tr.src.name}` : `#(${gates.join(" ")}) asSeq`;
+    const why = fits ? "" : ` "${n} steps written out to ${M}, so it restarts with the pattern"`;
+    L.push(`${tr.muted ? '"muted" ' : ""}((${rhythm} durations: #(${ev.map(e => e.d).join(" ")})) gateTimes: ${fmtNum(tr.gate)}) notes: #(${ev.map(e => fmtNote(e.m)).join(" ")}) to: #${key}.${why}`);
   });
-  L.push(`p playFor: ${N === 32 ? 8 : 16} bars.`);
+  L.push("p playFor: 16 bars.");
   return L.join("\n");
 }
 // @logic-end
@@ -910,14 +1073,16 @@ function voiceKick(t, accent) {
 }
 const VOICES = [voiceSaw, voiceSquare, voiceTri];
 
-function playStep(i, t) {
-  const N = state.steps;
-  if (state.kickOn && i % 4 === 0) voiceKick(t, i % 16 === 0 ? 1 : .9);
+// g: step in the pattern. Each lane reads its own step g % len; a note sounds for its duration
+// (cut at the lane's next note, also across the pattern restart) times the lane's gate, as in Coypu.
+function playStep(g, t) {
+  const M = state.steps;
+  if (state.kickOn && g % 4 === 0) voiceKick(t, g % 16 === 0 ? 1 : .9);
   state.tracks.forEach((tr, k) => {
-    if (!tr.gates[i] || !tr.notes[i]) return;
-    let gap = 1;
-    while (gap < ROLE[k].hold && !tr.gates[(i + gap) % N]) gap++;
-    const m = tr.notes[i].m, dur = gap * stepDur() * tr.gateFrac, vel = tr.vel[i] || .85;
+    const i = g % tr.len;
+    if (!isNote(tr, i)) return;
+    const steps = Math.min(tr.dur[i] || 1, gapAhead(tr, g, M));
+    const m = tr.notes[i].m, dur = steps * stepDur() * tr.gate, vel = tr.vel[i] || .85;
     if (midi.local) VOICES[k](t, m, dur, vel);
     if (!tr.muted) midiNote(k, m, t, dur, vel);
   });
@@ -1134,8 +1299,19 @@ const dieSVG = id => `<svg class="dface" viewBox="0 0 100 100" aria-hidden="true
 function setFace(n) {
   document.querySelectorAll(".dface circle").forEach(c => { c.style.display = FACES[n].includes(c.dataset.p) ? "" : "none"; });
 }
-let laneCells = [], ph = -1;
+let laneCells = [], phs = [];   // cells per lane (kick first) and each lane's playhead step
+const LEN_OPTS = Array.from({ length: MAXL - MINL + 1 }, (_, i) => `<option value="${i + MINL}">${i + MINL}</option>`).join("");
+const GATE_OPTS = Array.from({ length: 16 }, (_, i) => { const v = 25 + i * 5; return `<option value="${v / 100}">${v}%</option>`; }).join("");
 
+function harmonyText(ctx, h) {
+  const labels = h.map(c => chordLabel(ctx, c)), n = labels.length;
+  if (n === 1) return labels[0];
+  if (h.every(c => c.j === h[0].j)) return `${labels[0]} ${n === 2 ? "both bars" : "all bars"}`;
+  for (const P of [2, 4]) {
+    if (P < n && n % P === 0 && h.every((c, b) => c.j === h[b % P].j)) return `${labels.slice(0, P).join(" ▸ ")} ×${n / P}`;
+  }
+  return labels.join(" ▸ ");
+}
 function renderHero() {
   const ctx = state.ctx, sc = ctx.scale, h = state.harmony;
   $("#root").textContent = pcName(ctx.root);
@@ -1148,19 +1324,17 @@ function renderHero() {
     return `<span class="${cls}"><b>${pcName(d.sp)}</b><small>${sub}</small></span>`;
   }).join("");
   $("#tuning").textContent = `${TUNING[sc.ppo].label} · ${sc.deg.length} notes${sc.desc ? " asc/desc" : ""}`;
-  const labels = h.map(c => chordLabel(ctx, c));
-  $("#harmony").textContent = labels.length === 2 && h[0] !== h[1] ? labels.join(" ▸ ") : `${labels[0]}${labels.length === 2 ? " both bars" : ""}`;
+  $("#harmony").textContent = harmonyText(ctx, h);
 }
 function srcHTML(tr) {
-  const N = state.steps, s = tr.src, ed = tr.edited ? " <i>· edited</i>" : "";
-  if (s.kind === "world") return `<span class="tag">world</span>${N} ${s.name} <i>· ${s.origin}</i>${ed}`;
-  return `<span class="tag">random</span>${N} randomTrigsWithProbability: ${s.prob}${ed}`;
+  const s = tr.src, ed = tr.edited ? " <i>· edited</i>" : "";
+  if (s.kind === "world") return `<span class="tag">world</span>${tr.len} ${s.name} <i>· ${s.origin}</i>${ed}`;
+  return `<span class="tag">random</span>${tr.len} randomTrigsWithProbability: ${s.prob}${ed}`;
 }
 function renderLanes() {
-  const host = $("#lanes"), N = state.steps;
+  const host = $("#lanes");
   host.textContent = "";
-  laneCells = []; ph = -1;
-  const labels = state.harmony.map(c => chordLabel(state.ctx, c));
+  laneCells = []; phs = [];
   for (let k = -1; k < 3; k++) {
     const lane = document.createElement("div");
     lane.className = "lane" + (k < 0 ? " kick" : "");
@@ -1168,75 +1342,109 @@ function renderLanes() {
     lane.style.setProperty("--c", k < 0 ? "var(--ink)" : COLORS[k]);
     const head = document.createElement("div");
     head.className = "lh";
+    const nm = k < 0 ? "" : ROLE[k].name;
     head.innerHTML = k < 0
       ? `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`
-      : `<span class="num">${k + 1}</span><span class="lname">${ROLE[k].name}<small>${RANGE_TXT[k]} · ch ${MIDI_CH[k] + 1}</small></span><button type="button" class="ib mute" aria-label="Mute ${ROLE[k].name}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${ROLE[k].name} track">${ICON.reroll}</button><code class="src"></code>`;
+      : `<span class="num">${k + 1}</span><span class="lname">${nm}<small>${RANGE_TXT[k]} · ch ${MIDI_CH[k] + 1}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.reroll}</button>` +
+        `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><span class="stepper"><button type="button" class="ib sm" data-len="-1" aria-label="${nm}: one step shorter">−</button>` +
+        `<select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select><button type="button" class="ib sm" data-len="1" aria-label="${nm}: one step longer">+</button></span></span>` +
+        `<span class="grp g"><span class="lbl">Gate</span><select class="sel gate" aria-label="${nm} gate time">${GATE_OPTS}</select></span></div><code class="src"></code>`;
     lane.appendChild(head);
     const grid = document.createElement("div");
     grid.className = "grid";
-    const cells = [];
-    for (let b = 0; b < N / 16; b++) {
-      const bar = document.createElement("div");
-      bar.className = "bar";
-      if (k < 0) {
-        const cap = document.createElement("div");
-        cap.className = "cap";
-        cap.innerHTML = N === 32 ? `Bar ${b + 1} · <b>${labels[b]}</b>` : `Chord · <b>${labels[0]}</b>`;
-        bar.appendChild(cap);
-      }
-      for (let q = 0; q < 4; q++) {
-        const beat = document.createElement("div");
-        beat.className = "beat";
-        for (let j = 0; j < 4; j++) {
-          const i = b * 16 + q * 4 + j;
-          const cell = document.createElement(k < 0 ? "span" : "button");
-          cell.className = "cell" + (i % 4 === 0 ? " bt" : "");
-          if (k >= 0) { cell.type = "button"; cell.dataset.i = i; }
-          beat.appendChild(cell);
-          cells.push(cell);
-        }
-        bar.appendChild(beat);
-      }
-      grid.appendChild(bar);
-    }
     lane.appendChild(grid);
     host.appendChild(lane);
-    laneCells.push(cells);
-    updateLane(k);
+    laneCells.push([]);
+    phs.push(-1);
+    fillGrid(k);
   }
+}
+// (re)build a lane's cells: the kick shows the whole pattern with the chord of each bar,
+// a synth lane shows its own length, in bars of 16 and beats of 4
+function fillGrid(k) {
+  const lane = $(`#lanes .lane[data-k="${k}"]`);
+  if (!lane) return;
+  const grid = lane.querySelector(".grid"), M = state.steps, n = k < 0 ? M : state.tracks[k].len;
+  const labels = k < 0 ? state.harmony.map(c => chordLabel(state.ctx, c)) : null;
+  grid.textContent = "";
+  const cells = [];
+  for (let b = 0; b < Math.ceil(n / 16); b++) {
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    if (k < 0) {
+      const cap = document.createElement("div");
+      cap.className = "cap";
+      cap.innerHTML = M > 16 ? `Bar ${b + 1} · <b>${labels[b]}</b>` : `Chord · <b>${labels[0]}</b>`;
+      bar.appendChild(cap);
+    }
+    for (let q = 0; q < 4 && b * 16 + q * 4 < n; q++) {
+      const beat = document.createElement("div");
+      beat.className = "beat";
+      for (let j = 0; j < 4; j++) {
+        const i = b * 16 + q * 4 + j;
+        if (i >= n) break;
+        const cell = document.createElement(k < 0 ? "span" : "button");
+        cell.className = "cell" + (i % 4 === 0 ? " bt" : "");
+        if (k >= 0) { cell.type = "button"; cell.dataset.i = i; }
+        beat.appendChild(cell);
+        cells.push(cell);
+      }
+      bar.appendChild(beat);
+    }
+    grid.appendChild(bar);
+  }
+  laneCells[k + 1] = cells;
+  phs[k + 1] = -1;
+  updateLane(k);
 }
 function updateLane(k) {
   const cells = laneCells[k + 1];
-  if (!cells) return;
-  const lane = cells[0].closest(".lane"), N = state.steps;
+  if (!cells || !cells.length) return;
+  const lane = cells[0].closest(".lane"), M = state.steps;
   if (k < 0) {
     cells.forEach((c, i) => c.classList.toggle("on", i % 4 === 0));
     lane.classList.toggle("muted", !state.kickOn);
     lane.querySelector(".mute").setAttribute("aria-pressed", String(!state.kickOn));
-    lane.querySelector(".src").innerHTML = `<span class="tag">4/4</span>${N} downbeats`;
+    lane.querySelector(".src").innerHTML = `<span class="tag">4/4</span>${M} downbeats`;
     return;
   }
-  const tr = state.tracks[k], R = ROLE[k];
+  const tr = state.tracks[k], R = ROLE[k], cov = coverage(tr);
+  const label = n => noteName(n.m, n.d.sp);
   cells.forEach((c, i) => {
-    const n = tr.gates[i] ? tr.notes[i] : null;
-    c.classList.toggle("on", !!n);
-    if (n) {
-      const nm = noteName(n.m, n.d.sp), ct = n.d.sp.cents;
+    const on = isNote(tr, i), own = on ? -1 : cov.owner[i], out = i >= M ? " (past the pattern end, not played)" : "";
+    c.classList.toggle("on", on);
+    c.classList.toggle("tail", own >= 0);
+    c.classList.toggle("end", own >= 0 && cov.end[i]);
+    c.classList.toggle("out", i >= M);
+    if (on) {
+      const n = tr.notes[i], nm = label(n), ct = n.d.sp.cents, d = effDur(tr, i);
       c.innerHTML = `<span class="nn">${nm}</span>${ct ? `<span class="ct">${ct > 0 ? "+" : "−"}${Math.abs(ct)}¢</span>` : ""}`;
-      c.setAttribute("aria-label", `${R.name} step ${i + 1}: ${nm}`);
+      c.setAttribute("aria-label", `${R.name} step ${i + 1}: ${nm}, ${d} step${d > 1 ? "s" : ""}${out}`);
+    } else if (own >= 0) {
+      c.innerHTML = "";
+      c.setAttribute("aria-label", `${R.name} step ${i + 1}: ${label(tr.notes[own])} held${out}`);
     } else {
       c.innerHTML = i % 4 === 0 ? `<span class="st">${i + 1}</span>` : "";
-      c.setAttribute("aria-label", `${R.name} step ${i + 1}: off`);
+      c.setAttribute("aria-label", `${R.name} step ${i + 1}: off${out}`);
     }
   });
   lane.classList.toggle("muted", tr.muted);
   lane.querySelector(".mute").setAttribute("aria-pressed", String(tr.muted));
   lane.querySelector(".src").innerHTML = srcHTML(tr);
+  lane.querySelector(".sel.len").value = String(tr.len);
+  lane.querySelector(".sel.gate").value = String(tr.gate);
+  lane.querySelector('[data-len="-1"]').disabled = tr.len <= MINL;
+  lane.querySelector('[data-len="1"]').disabled = tr.len >= MAXL;
 }
-function setPlayhead(i) {
-  if (ph >= 0) laneCells.forEach(cells => cells[ph] && cells[ph].classList.remove("now"));
-  ph = i >= 0 && i < state.steps ? i : -1;
-  if (ph >= 0) laneCells.forEach(cells => cells[ph] && cells[ph].classList.add("now"));
+// g: pattern step, -1 clears. The kick lane shows g, each synth lane its own step g % len.
+function setPlayhead(g) {
+  laneCells.forEach((cells, li) => {
+    const old = phs[li];
+    if (old >= 0 && cells[old]) cells[old].classList.remove("now");
+    const i = g >= 0 && g < state.steps ? (li === 0 ? g : g % state.tracks[li - 1].len) : -1;
+    phs[li] = i;
+    if (i >= 0 && cells[i]) cells[i].classList.add("now");
+  });
 }
 function renderAll() { renderHero(); renderLanes(); }
 function updatePlay() {
@@ -1245,7 +1453,7 @@ function updatePlay() {
   b.innerHTML = playing ? `${ICON.stop}<span>Stop</span>` : `${ICON.play}<span>Play</span>`;
 }
 function syncControls() {
-  ["16", "32"].forEach(n => $("#s" + n).setAttribute("aria-checked", String(state.steps === +n)));
+  MASTERS.forEach(n => $("#s" + n).setAttribute("aria-checked", String(state.steps === n)));
   $("#bpm").value = state.bpm;
   $("#bpmOut").textContent = `${state.bpm} BPM`;
   $("#rnd").value = state.rnd;
@@ -1280,14 +1488,18 @@ function roll() {
 }
 function spinOnce2(el) { el.classList.remove("rolling"); void el.offsetWidth; el.classList.add("rolling"); }
 function doRegen() { regenerateState(); renderAll(); spinOnce($("#regen")); }
-function setSteps(n) {
-  if (n === state.steps) return;
-  state.steps = n;
+function setMaster(n) {
+  if (!setMasterState(n)) return;
   stepIdx %= n;
   syncControls();
-  regenerateState();
   renderAll();
 }
+function setTrackLen(k, n) {
+  if (!setTrackLenState(k, n)) return;
+  fillGrid(k);
+  if (playing) setPlayhead(ph0());
+}
+const ph0 = () => (phs[0] >= 0 ? phs[0] : -1);   // the pattern step the kick lane shows
 function toggleMute(k) {
   if (k < 0) { state.kickOn = !state.kickOn; updateLane(-1); return; }
   const tr = state.tracks[k];
@@ -1305,30 +1517,41 @@ async function copyCoypu() {
 function snapshot() {
   if (!state.ctx) return {};
   return {
-    v: 1, scale: state.ctx.scale.key, rootPc: state.ctx.rootPc, steps: state.steps, bpm: state.bpm, rnd: state.rnd,
+    v: 2, scale: state.ctx.scale.key, rootPc: state.ctx.rootPc, steps: state.steps, bpm: state.bpm, rnd: state.rnd,
     micro: state.micro, kick: state.kickOn, harmony: state.harmony.map(c => c.j),
-    tracks: state.tracks.map(t => ({ gates: t.gates, notes: t.notes.map(n => (n ? n.m : null)), vel: t.vel, src: t.src, edited: t.edited, muted: t.muted, gateFrac: t.gateFrac })),
+    tracks: state.tracks.map(t => ({ len: t.len, gates: t.gates, notes: t.notes.map(n => (n ? n.m : null)), vel: t.vel, dur: t.dur, src: t.src, edited: t.edited, muted: t.muted, gate: t.gate, gateSet: t.gateSet })),
   };
 }
+// v1 (16/32 steps, no lengths or durations) loads too: every lane gets the pattern length and
+// each note is held until the next one, up to its role's hold, as v1 played it.
 function restore(d) {
   try {
     const sc = SCALES.find(s => s.key === d.scale);
     if (!sc || !Array.isArray(d.tracks) || d.tracks.length !== 3) return false;
-    state.steps = d.steps === 32 ? 32 : 16;
+    const v1 = d.v === 1;
+    state.steps = MASTERS.includes(+d.steps) ? +d.steps : 16;
     state.bpm = clamp(+d.bpm || 124, 70, 170);
     state.rnd = clamp(+d.rnd || 0, 0, 100);
     state.micro = d.micro !== false;
     state.kickOn = d.kick !== false;
     state.ctx = buildCtx(sc, (d.rootPc | 0) % 12);
-    state.harmony = d.harmony.map(j => chordOn(state.ctx, j));
+    const nb = barsOf(state.steps), hj = Array.isArray(d.harmony) ? d.harmony : [];
+    state.harmony = hj.length === nb && hj.every(j => j >= 0 && j < state.ctx.asc.length) ? hj.map(j => chordOn(state.ctx, j)) : makeHarmony(state.ctx, nb);
+    const pad = (a, f) => Array.from({ length: MAXL }, (_, i) => (Array.isArray(a) && a[i] != null ? a[i] : f));
     state.tracks = d.tracks.map((t, k) => {
       const pool = poolFor(state.ctx, ROLE[k].lo, ROLE[k].hi);
-      return {
-        gates: t.gates.slice(0, state.steps), notes: t.notes.slice(0, state.steps).map(m => (m == null ? null : pool.find(p => near(p.m, m)) || null)),
-        vel: t.vel.slice(0, state.steps), src: t.src, edited: !!t.edited, muted: !!t.muted, gateFrac: +t.gateFrac || .7,
+      const tr = {
+        len: clamp((v1 ? state.steps : +t.len) || 16, MINL, MAXL),
+        gates: pad(t.gates, 0).map(g => (g ? 1 : 0)),
+        notes: pad(t.notes, null).map(m => (m == null ? null : pool.find(p => near(p.m, m)) || null)),
+        vel: pad(t.vel, .85).map(Number), dur: pad(v1 ? null : t.dur, 0).map(Number),
+        src: t.src && typeof t.src === "object" ? t.src : { kind: "random", prob: 50 }, edited: !!t.edited, muted: !!t.muted,
+        gate: roundGate(+(v1 ? t.gateFrac : t.gate) || .8), gateSet: !!t.gateSet,
       };
+      tr.gates.forEach((g, i) => { if (isNote(tr, i) && !(tr.dur[i] >= 1)) tr.dur[i] = Math.min(gapIn(tr, i), ROLE[k].hold); });
+      return tr;
     });
-    return state.tracks.every(t => t.gates.length === state.steps);
+    return true;
   } catch (e) { return false; }
 }
 
@@ -1338,7 +1561,7 @@ function start(data) {
   $("#die2").innerHTML = dieSVG("dg2");
   $("#regen").innerHTML = `${ICON.reroll}<span>Regenerate</span>`;
   setFace(5);
-  if (!(data && data.v === 1 && restore(data))) rollState();
+  if (!(data && (data.v === 1 || data.v === 2) && restore(data))) rollState();
   syncControls(); updatePlay(); renderAll();
 
   $("#die").addEventListener("click", roll);
@@ -1346,19 +1569,72 @@ function start(data) {
   $("#play").addEventListener("click", togglePlay);
   $("#regen").addEventListener("click", doRegen);
   $("#copy").addEventListener("click", copyCoypu);
-  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => setSteps(+b.dataset.steps)));
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => setMaster(+b.dataset.steps)));
   $("#bpm").addEventListener("input", e => { state.bpm = +e.target.value; $("#bpmOut").textContent = `${state.bpm} BPM`; setDelayTime(); });
   $("#rnd").addEventListener("input", e => { state.rnd = +e.target.value; syncControls(); });
   $("#micro").addEventListener("change", e => { state.micro = e.target.checked; syncControls(); });
-  $("#lanes").addEventListener("click", e => {
+  const lanes = $("#lanes");
+  lanes.addEventListener("click", e => {
     const lane = e.target.closest(".lane");
     if (!lane) return;
     const k = +lane.dataset.k;
     if (e.target.closest(".mute")) { toggleMute(k); return; }
     const rr = e.target.closest(".reroll");
-    if (rr) { rerollTrackState(k); updateLane(k); spinOnce(rr); return; }
+    if (rr) { rerollTrackState(k); fillGrid(k); spinOnce(rr); return; }
+    const lb = e.target.closest("[data-len]");
+    if (lb && k >= 0) { setTrackLen(k, state.tracks[k].len + +lb.dataset.len); return; }
+    // steps: pointers act on pointerup below; a click with detail 0 comes from the keyboard
     const cell = e.target.closest("button.cell");
-    if (cell && k >= 0) { toggleStepState(k, +cell.dataset.i); updateLane(k); }
+    if (cell && k >= 0 && e.detail === 0 && !(cell === lastPtrCell && performance.now() - lastPtr < 500)) { toggleStepState(k, +cell.dataset.i); updateLane(k); }
+  });
+  lanes.addEventListener("change", e => {
+    const lane = e.target.closest(".lane");
+    if (!lane || +lane.dataset.k < 0) return;
+    const k = +lane.dataset.k, tr = state.tracks[k];
+    if (e.target.matches(".sel.len")) setTrackLen(k, +e.target.value);
+    else if (e.target.matches(".sel.gate")) { tr.gate = roundGate(+e.target.value); tr.gateSet = true; }
+  });
+  // Tap a step to switch it. Press on a note (or a step it holds) and drag to set its length.
+  let drag = null, lastPtr = 0, lastPtrCell = null;
+  const cellAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest("#lanes button.cell") : null; };
+  lanes.addEventListener("pointerdown", e => {
+    if (e.button > 0) return;
+    const cell = e.target.closest("button.cell");
+    if (!cell) return;
+    const k = +cell.closest(".lane").dataset.k, i = +cell.dataset.i;
+    drag = { k, i, cell, own: ownerOf(state.tracks[k], i), id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+  });
+  addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved) {
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 8) return;
+      if (drag.own < 0) { drag = null; return; }                       // a swipe from an empty step is not ours
+      drag.moved = true;
+    }
+    const cell = cellAt(e.clientX, e.clientY);
+    if (!cell || +cell.closest(".lane").dataset.k !== drag.k) return;
+    const tr = state.tracks[drag.k];
+    if (setDurState(drag.k, drag.own, dragDur(tr, drag.own, +cell.dataset.i))) updateLane(drag.k);
+  });
+  addEventListener("pointerup", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    lastPtr = performance.now();
+    lastPtrCell = d.cell;
+    if (!d.moved) { toggleStepState(d.k, d.i); updateLane(d.k); }
+  });
+  addEventListener("pointercancel", e => { if (drag && e.pointerId === drag.id) drag = null; });
+  lanes.addEventListener("contextmenu", e => { if (e.target.closest("button.cell")) e.preventDefault(); });
+  // Shift + arrows on a focused note or held step: one step longer or shorter
+  lanes.addEventListener("keydown", e => {
+    if (!e.shiftKey || (e.key !== "ArrowRight" && e.key !== "ArrowLeft")) return;
+    const cell = e.target.closest("button.cell");
+    if (!cell) return;
+    const k = +cell.closest(".lane").dataset.k, tr = state.tracks[k], own = ownerOf(tr, +cell.dataset.i);
+    if (own < 0) return;
+    e.preventDefault();
+    if (setDurState(k, own, effDur(tr, own) + (e.key === "ArrowRight" ? 1 : -1))) updateLane(k);
   });
   $("#mclose").addEventListener("click", () => $("#modal").classList.remove("open"));
   $("#msel").addEventListener("click", () => { $("#mtext").focus(); $("#mtext").select(); });
