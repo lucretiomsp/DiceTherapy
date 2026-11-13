@@ -35,8 +35,9 @@
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.45 var(--mono);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 code{font:inherit}
+[hidden]{display:none!important}
 
 .app{max-width:1200px;margin:0 auto;padding:14px 16px calc(104px + env(safe-area-inset-bottom));display:grid;gap:14px}
 .side,.main{display:grid;gap:14px;min-width:0;align-content:start}
@@ -84,6 +85,8 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
 .toggle{display:flex;align-items:center;gap:10px;cursor:pointer}
 .toggle input{width:20px;height:20px;margin:0;accent-color:var(--ink)}
 .toggle small{color:var(--dim)}
+.sel{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:700 12px var(--mono);cursor:pointer}
+.sel:disabled{color:var(--dim);cursor:default}
 
 /* transport: bottom bar on phones, inline on desktop */
 .transport{position:fixed;z-index:5;left:0;right:0;bottom:0;display:grid;grid-template-columns:60px minmax(0,.85fr) minmax(0,1.15fr);gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(18,17,15,.94);border-top:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -209,6 +212,14 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
         <input type="checkbox" id="micro" checked>
         <span>Microtonal scales <small>24-TET maqams, Partch JI</small></span>
       </label>
+      <div class="row">
+        <label class="lbl" for="midiOut">MIDI out</label>
+        <select class="sel" id="midiOut"><option value="">Off</option></select>
+      </div>
+      <label class="toggle" for="local" id="localRow" hidden>
+        <input type="checkbox" id="local" checked>
+        <span>Local synths <small>untick for MIDI only</small></span>
+      </label>
     </section>
 
     <nav class="transport" aria-label="Transport">
@@ -224,6 +235,7 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
     <footer class="foot">
       <p><b>Notes.</b> Each note is weighted by its consonance with the chord, the strength of its step (root, third and fifth on the beat), stepwise voice leading and its interval against the bass. 32 steps adds a second chord in bar 2. Tap a step to switch it.</p>
       <p><b>Notation.</b> C4 = MIDI 60. ↑ ↓ raise or lower a quarter tone. Partch notes show cents from 12-TET.</p>
+      <p><b>MIDI.</b> Saw, Square and Tri go out on channels 1, 2 and 3; muted lanes send nothing, the kick stays local. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
       <p><b>Sources.</b> Scales: SuperCollider <code>Scale.directory</code>. Rhythms: the world rhythms of Coypu, random ones follow <code>randomTrigsWithProbability:</code>.</p>
     </footer>
   </main>
@@ -905,12 +917,15 @@ function playStep(i, t) {
     if (!tr.gates[i] || !tr.notes[i]) return;
     let gap = 1;
     while (gap < ROLE[k].hold && !tr.gates[(i + gap) % N]) gap++;
-    VOICES[k](t, tr.notes[i].m, gap * stepDur() * tr.gateFrac, tr.vel[i] || .85);
+    const m = tr.notes[i].m, dur = gap * stepDur() * tr.gateFrac, vel = tr.vel[i] || .85;
+    if (midi.local) VOICES[k](t, m, dur, vel);
+    if (!tr.muted) midiNote(k, m, t, dur, vel);
   });
 }
 function schedule() {
   if (!playing || !AC) return;
   const now = AC.currentTime;
+  if (midi.out) midiClock();
   if (nextT < now - .05) nextT = now + .03;                         // resumed after an interruption
   while (nextT < now + LOOKAHEAD) {
     playStep(stepIdx, nextT);
@@ -918,6 +933,7 @@ function schedule() {
     nextT += stepDur();
     stepIdx = (stepIdx + 1) % state.steps;
   }
+  midiFlush(now + LOOKAHEAD);
 }
 // Clock: a worker keeps ticking when the main thread is busy or throttled
 const clock = (() => {
@@ -969,12 +985,138 @@ async function togglePlay() {
   if (playing) { stopPlay(); return; }
   const ok = await ensureAudio();
   if (!ok) { toast("Audio is blocked here. Tap Play again."); return; }
-  playing = true; stepIdx = 0; vq.length = 0; nextT = AC.currentTime + .05;
+  if (midi.out) await midiSettle();
+  playing = true; stepIdx = 0; vq.length = 0;
+  nextT = Math.max(AC.currentTime + .05, nextT);                    // a quick restart waits for the steps already scheduled
   clock.start(); schedule(); requestAnimationFrame(frame);
   updatePlay();
 }
 function stopPlay() {
   playing = false; clock.stop(); vq.length = 0; setPlayhead(-1); updatePlay();
+  midiDrain();
+}
+
+/* =============================== MIDI ============================= */
+// Saw, Square, Tri go out on MIDI channels 1, 2, 3. Each lane is monophonic on its own
+// channel, so microtones (24-TET, Partch JI) ride on a per-note pitch bend.
+const MIDI_CH = [0, 1, 2];                // 0-based: ch 1, 2, 3
+const BEND_RANGE = 2;                     // semitones, also sent to the synth as RPN 0
+const MIDI_KEY = "diceTherapy.midiOut";   // last port used
+const midi = { access: null, out: null, local: true, clk: null, clkOk: false, pend: [null, null, null], bend: [null, null, null] };
+
+// Offset from AudioContext time to performance.now() time at which it is heard, so MIDI lands
+// with the audio. The output timestamp is exact; the currentTime fallback moves in audio-callback
+// chunks, so it is smoothed. Switching source or a jump (new output device) snaps it.
+function midiClock() {
+  const ts = AC.getOutputTimestamp ? AC.getOutputTimestamp() : null;
+  const ok = !!(ts && ts.contextTime > 0 && ts.performanceTime > 0);
+  const raw = ok ? ts.performanceTime - ts.contextTime * 1000
+    : performance.now() - (AC.currentTime - (AC.outputLatency || AC.baseLatency || 0)) * 1000;
+  midi.clk = midi.clk == null || ok !== midi.clkOk || Math.abs(raw - midi.clk) > 50 ? raw : midi.clk + (raw - midi.clk) * .02;
+  midi.clkOk = ok;
+}
+// The first output timestamps of a fresh AudioContext are off by up to a buffer while the device
+// primes: before the first notes, wait (~30 ms) until two readings agree
+function midiSettle() {
+  return new Promise(res => {
+    const t0 = performance.now();
+    let last = null;
+    (function poll() {
+      const ts = AC.getOutputTimestamp ? AC.getOutputTimestamp() : null;
+      if (!ts || ts.contextTime > .5 || performance.now() - t0 > 300) return res();
+      if (ts.contextTime > 0 && ts.performanceTime > 0 && (!last || ts.contextTime !== last.c)) {
+        const o = ts.performanceTime - ts.contextTime * 1000;
+        if (last && Math.abs(o - last.o) < 1) return res();
+        last = { c: ts.contextTime, o };
+      }
+      setTimeout(poll, 4);
+    })();
+  });
+}
+function perfAt(t) {
+  if (midi.clk == null) midiClock();
+  return midi.clk + t * 1000;
+}
+function midiSend(data, at) {
+  try { midi.out.send(data, at); } catch (e) { /* port went away */ }
+}
+function midiNote(k, m, t, dur, vel) {
+  if (!midi.out) return;
+  const ch = MIDI_CH[k], n = clamp(Math.round(m), 0, 127), on = perfAt(t), p = midi.pend[k];
+  const bend = clamp(Math.round(8192 + (m - n) / BEND_RANGE * 8192), 0, 16383);
+  if (p) midiSend([0x80 | ch, p.n, 0], Math.min(perfAt(p.off), on));   // a tempo jump can overlap notes: cut the old one
+  if (bend !== midi.bend[k]) { midiSend([0xE0 | ch, bend & 127, bend >> 7], on); midi.bend[k] = bend; }
+  midiSend([0x90 | ch, n, clamp(Math.round(vel * 127), 1, 127)], on);
+  midi.pend[k] = { n, off: t + dur };
+}
+// note-offs wait here until they fall inside the lookahead, so a later note can still pull them in
+function midiFlush(horizon) {
+  midi.pend.forEach((p, k) => {
+    if (!p || p.off >= horizon) return;
+    if (midi.out) midiSend([0x80 | MIDI_CH[k], p.n, 0], perfAt(p.off));
+    midi.pend[k] = null;
+  });
+}
+function midiDrain() {                    // after stop, ringing notes still get their note-off when due
+  if (playing) return;
+  midiFlush(AC.currentTime + LOOKAHEAD);
+  if (midi.pend.some(Boolean)) setTimeout(midiDrain, 25);
+}
+function setMidiOut(out, remember) {
+  out = out || null;
+  if (midi.out && midi.out !== out) midiFlush(Infinity);
+  midi.out = out;
+  midi.bend = [null, null, null];
+  if (out) MIDI_CH.forEach(ch => { const c = 0xB0 | ch; midiSend([c, 101, 0, c, 100, 0, c, 6, BEND_RANGE, c, 38, 0, c, 101, 127, c, 100, 127]); });
+  else if (!midi.local) { midi.local = true; $("#local").checked = true; }   // without MIDI, never leave the synths silent
+  $("#localRow").hidden = !out;
+  $("#midiOut").value = out ? out.id : "";
+  if (remember) { try { localStorage.setItem(MIDI_KEY, out ? out.name : "off"); } catch (e) { /* storage blocked */ } }
+}
+// Picks the last port used (and waits for it if it is unplugged), else the first real one
+function midiList(manual) {
+  const sel = $("#midiOut");
+  const outs = [...midi.access.outputs.values()].filter(o => o.state !== "disconnected");
+  if (midi.out && !outs.some(o => o.id === midi.out.id)) setMidiOut(null);      // unplugged
+  if (!midi.out) {
+    let last = null;
+    try { last = localStorage.getItem(MIDI_KEY); } catch (e) { /* storage blocked */ }
+    if (manual && last === "off") last = null;
+    const first = outs.find(o => !/GS Wavetable/i.test(o.name));
+    const d = last === "off" ? null : !last ? first : outs.find(o => o.name === last) || (manual ? first : null);
+    if (d) setMidiOut(d, manual);
+  }
+  const none = new Option("No MIDI outputs found", "-");
+  none.disabled = true;
+  sel.replaceChildren(new Option("Off", ""), ...outs.map(o => new Option(o.name, o.id)), ...(outs.length ? [] : [none]));
+  sel.value = midi.out ? midi.out.id : "";
+}
+async function midiConnect(manual) {
+  try { midi.access = await navigator.requestMIDIAccess(); }
+  catch (e) {
+    if (manual) toast("MIDI is blocked: allow it in the site settings");
+    $("#midiOut").value = "";
+    return;
+  }
+  midi.access.onstatechange = () => midiList(false);
+  midiList(manual);
+}
+function midiSetup() {
+  const sel = $("#midiOut");
+  if (!navigator.requestMIDIAccess) {
+    sel.replaceChildren(new Option("Not available in this browser", ""));
+    sel.disabled = true;
+    return;
+  }
+  sel.replaceChildren(new Option("Off", ""), new Option("Connect…", "?"));
+  sel.addEventListener("change", () => {
+    if (sel.value === "?") midiConnect(true);
+    else setMidiOut(sel.value && midi.access ? midi.access.outputs.get(sel.value) : null, true);
+  });
+  $("#local").addEventListener("change", e => { midi.local = e.target.checked; });
+  addEventListener("pagehide", () => { if (midi.out) MIDI_CH.forEach(ch => midiSend([0xB0 | ch, 123, 0])); });   // all notes off
+  try { navigator.permissions.query({ name: "midi" }).then(s => { if (s.state === "granted") midiConnect(false); }, () => {}); }
+  catch (e) { /* no Permissions API */ }
 }
 
 /* ================================ UI ============================== */
@@ -1028,7 +1170,7 @@ function renderLanes() {
     head.className = "lh";
     head.innerHTML = k < 0
       ? `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`
-      : `<span class="num">${k + 1}</span><span class="lname">${ROLE[k].name}<small>${RANGE_TXT[k]}</small></span><button type="button" class="ib mute" aria-label="Mute ${ROLE[k].name}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${ROLE[k].name} track">${ICON.reroll}</button><code class="src"></code>`;
+      : `<span class="num">${k + 1}</span><span class="lname">${ROLE[k].name}<small>${RANGE_TXT[k]} · ch ${MIDI_CH[k] + 1}</small></span><button type="button" class="ib mute" aria-label="Mute ${ROLE[k].name}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${ROLE[k].name} track">${ICON.reroll}</button><code class="src"></code>`;
     lane.appendChild(head);
     const grid = document.createElement("div");
     grid.className = "grid";
@@ -1222,13 +1364,14 @@ function start(data) {
   $("#msel").addEventListener("click", () => { $("#mtext").focus(); $("#mtext").select(); });
   $("#modal").addEventListener("click", e => { if (e.target.id === "modal") $("#modal").classList.remove("open"); });
   document.addEventListener("keydown", e => {
-    if (e.target.matches("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.matches("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "Escape") { $("#modal").classList.remove("open"); return; }
     if (e.code === "Space") { e.preventDefault(); if (!e.repeat) togglePlay(); }
     else if (e.key === "d" || e.key === "D") roll();
     else if (e.key === "r" || e.key === "R") doRegen();
   });
-  document.addEventListener("keyup", e => { if (e.code === "Space" && !e.target.matches("input, textarea")) e.preventDefault(); });
+  document.addEventListener("keyup", e => { if (e.code === "Space" && !e.target.matches("input, textarea, select")) e.preventDefault(); });
+  midiSetup();
   try { window.claude?.hot?.snapshot?.(() => snapshot()); } catch (e) { /* outside the viewer */ }
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
