@@ -87,6 +87,7 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
 .toggle small{color:var(--dim)}
 .sel{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:700 12px var(--mono);cursor:pointer}
 .sel:disabled{color:var(--dim);cursor:default}
+.port .lbl{flex:none;width:76px}
 
 /* transport: bottom bar on phones, inline on desktop */
 .transport{position:fixed;z-index:5;left:0;right:0;bottom:0;display:grid;grid-template-columns:60px minmax(0,.85fr) minmax(0,1.15fr);gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(18,17,15,.94);border-top:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -230,7 +231,7 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
         <input type="checkbox" id="micro" checked>
         <span>Microtonal scales <small>24-TET maqams, Partch JI</small></span>
       </label>
-      <div class="row">
+      <div class="row port">
         <label class="lbl" for="midiOut">MIDI out</label>
         <select class="sel" id="midiOut"><option value="">Off</option></select>
       </div>
@@ -238,6 +239,10 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
         <input type="checkbox" id="local" checked>
         <span>Local synths <small>untick for MIDI only</small></span>
       </label>
+      <div class="row port">
+        <label class="lbl" for="clockOut">Clock out</label>
+        <select class="sel" id="clockOut"><option value="">Off</option></select>
+      </div>
     </section>
 
     <nav class="transport" aria-label="Transport">
@@ -255,7 +260,7 @@ input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--ink)}
       <p><b>Lengths.</b> The pattern (16 to 128 steps) restarts every lane when it ends. Each lane loops on its own length, 3 to 64 steps, so lanes can drift against each other; a note that repeats over several chords is chosen to fit all of them. Lanes that match the pattern length follow it when you change it.</p>
       <p><b>Durations.</b> Each note lasts a number of steps, at most until the next note of its lane, so lanes stay monophonic. Tap a step to switch it. Drag a note to the right to hold it longer, drag back to shorten it, or use Shift + arrow keys. Tap a held step to start a new note there. Gate is the share of the length that sounds. Both export to Coypu as <code>durations:</code> and <code>gateTimes:</code>.</p>
       <p><b>Notation.</b> C4 = MIDI 60. ↑ ↓ raise or lower a quarter tone. Partch notes show cents from 12-TET.</p>
-      <p><b>MIDI.</b> Saw, Square and Tri go out on channels 1, 2 and 3; muted lanes send nothing, the kick stays local. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
+      <p><b>MIDI.</b> Saw, Square and Tri go out on channels 1, 2 and 3; muted lanes send nothing, the kick stays local. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Clock out sends MIDI clock (24 ppqn) with Start and Stop, to its own port or to the notes port: the other device starts with step 1, or on the next bar line if you pick it while playing, and stops when the audio does. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
       <p><b>Sources.</b> Scales: SuperCollider <code>Scale.directory</code>. Rhythms: the world rhythms of Coypu, random ones follow <code>randomTrigsWithProbability:</code>.</p>
     </footer>
   </main>
@@ -1077,6 +1082,7 @@ const VOICES = [voiceSaw, voiceSquare, voiceTri];
 // (cut at the lane's next note, also across the pattern restart) times the lane's gate, as in Coypu.
 function playStep(g, t) {
   const M = state.steps;
+  if (midi.sync) clockTicks(g, t);
   if (state.kickOn && g % 4 === 0) voiceKick(t, g % 16 === 0 ? 1 : .9);
   state.tracks.forEach((tr, k) => {
     const i = g % tr.len;
@@ -1090,7 +1096,7 @@ function playStep(g, t) {
 function schedule() {
   if (!playing || !AC) return;
   const now = AC.currentTime;
-  if (midi.out) midiClock();
+  midiTimebase();
   if (nextT < now - .05) nextT = now + .03;                         // resumed after an interruption
   while (nextT < now + LOOKAHEAD) {
     playStep(stepIdx, nextT);
@@ -1150,7 +1156,8 @@ async function togglePlay() {
   if (playing) { stopPlay(); return; }
   const ok = await ensureAudio();
   if (!ok) { toast("Audio is blocked here. Tap Play again."); return; }
-  if (midi.out) await midiSettle();
+  if (midi.out || midi.sync) await midiSettle();
+  midi.tb = null;                                                   // fresh audio-to-MIDI offset: it is not tracked while stopped
   playing = true; stepIdx = 0; vq.length = 0;
   nextT = Math.max(AC.currentTime + .05, nextT);                    // a quick restart waits for the steps already scheduled
   clock.start(); schedule(); requestAnimationFrame(frame);
@@ -1158,27 +1165,36 @@ async function togglePlay() {
 }
 function stopPlay() {
   playing = false; clock.stop(); vq.length = 0; setPlayhead(-1); updatePlay();
+  clockStop();
   midiDrain();
 }
 
 /* =============================== MIDI ============================= */
 // Saw, Square, Tri go out on MIDI channels 1, 2, 3. Each lane is monophonic on its own
 // channel, so microtones (24-TET, Partch JI) ride on a per-note pitch bend.
+// MIDI clock (24 ppqn, Start, Stop) has its own port, which can also be the notes port.
 const MIDI_CH = [0, 1, 2];                // 0-based: ch 1, 2, 3
 const BEND_RANGE = 2;                     // semitones, also sent to the synth as RPN 0
 const MIDI_KEY = "diceTherapy.midiOut";   // last port used
-const midi = { access: null, out: null, local: true, clk: null, clkOk: false, pend: [null, null, null], bend: [null, null, null] };
+const CLOCK_KEY = "diceTherapy.clockOut"; // last clock port used
+const midi = {
+  access: null, out: null, sync: null, local: true, tb: null, tbOk: false,
+  run: false, tickAt: 0, stopAt: 0,       // clock: Start sent, time of the last clock, time of the last Stop
+  pend: [null, null, null], bend: [null, null, null],
+};
+const stored = key => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+const store = (key, v) => { try { localStorage.setItem(key, v); } catch (e) { /* storage blocked */ } };
 
 // Offset from AudioContext time to performance.now() time at which it is heard, so MIDI lands
 // with the audio. The output timestamp is exact; the currentTime fallback moves in audio-callback
 // chunks, so it is smoothed. Switching source or a jump (new output device) snaps it.
-function midiClock() {
+function midiTimebase() {
   const ts = AC.getOutputTimestamp ? AC.getOutputTimestamp() : null;
   const ok = !!(ts && ts.contextTime > 0 && ts.performanceTime > 0);
   const raw = ok ? ts.performanceTime - ts.contextTime * 1000
     : performance.now() - (AC.currentTime - (AC.outputLatency || AC.baseLatency || 0)) * 1000;
-  midi.clk = midi.clk == null || ok !== midi.clkOk || Math.abs(raw - midi.clk) > 50 ? raw : midi.clk + (raw - midi.clk) * .02;
-  midi.clkOk = ok;
+  midi.tb = midi.tb == null || ok !== midi.tbOk || Math.abs(raw - midi.tb) > 50 ? raw : midi.tb + (raw - midi.tb) * .02;
+  midi.tbOk = ok;
 }
 // The first output timestamps of a fresh AudioContext are off by up to a buffer while the device
 // primes: before the first notes, wait (~30 ms) until two readings agree
@@ -1199,11 +1215,11 @@ function midiSettle() {
   });
 }
 function perfAt(t) {
-  if (midi.clk == null) midiClock();
-  return midi.clk + t * 1000;
+  if (midi.tb == null) midiTimebase();
+  return midi.tb + t * 1000;
 }
-function midiSend(data, at) {
-  try { midi.out.send(data, at); } catch (e) { /* port went away */ }
+function midiSend(data, at, port = midi.out) {
+  try { port.send(data, at); } catch (e) { /* port went away */ }
 }
 function midiNote(k, m, t, dur, vel) {
   if (!midi.out) return;
@@ -1227,6 +1243,29 @@ function midiDrain() {                    // after stop, ringing notes still get
   midiFlush(AC.currentTime + LOOKAHEAD);
   if (midi.pend.some(Boolean)) setTimeout(midiDrain, 25);
 }
+// MIDI clock: 6 clocks per 16th step, laid on the step grid with the same lookahead and timestamps
+// as the notes, so tempo changes reach the clock from the next step, like the notes. Start goes
+// just before the first clock, which the other device plays as step 1. Stop goes after the clocks
+// already queued, so the other device stops where the audio does.
+function clockTicks(g, t) {
+  if (!midi.run) {
+    if (g % 16) return;                                             // start, or join while playing, on a bar line
+    midi.tickAt = Math.max(perfAt(t) - 1, midi.stopAt + 1);         // never before the last Stop
+    midiSend([0xFA], midi.tickAt, midi.sync);
+    midi.run = true;
+  }
+  const sd = stepDur() / 6;
+  for (let n = 0; n < 6; n++) {
+    midi.tickAt = Math.max(perfAt(t + n * sd), midi.tickAt);       // never out of order
+    midiSend([0xF8], midi.tickAt, midi.sync);
+  }
+}
+function clockStop(now) {
+  if (!midi.run) return;
+  midi.run = false;
+  midi.stopAt = now ? performance.now() : Math.max(performance.now(), midi.tickAt + 1);
+  if (midi.sync) midiSend([0xFC], now ? undefined : midi.stopAt, midi.sync);
+}
 function setMidiOut(out, remember) {
   out = out || null;
   if (midi.out && midi.out !== out) midiFlush(Infinity);
@@ -1236,51 +1275,74 @@ function setMidiOut(out, remember) {
   else if (!midi.local) { midi.local = true; $("#local").checked = true; }   // without MIDI, never leave the synths silent
   $("#localRow").hidden = !out;
   $("#midiOut").value = out ? out.id : "";
-  if (remember) { try { localStorage.setItem(MIDI_KEY, out ? out.name : "off"); } catch (e) { /* storage blocked */ } }
+  if (remember) store(MIDI_KEY, out ? out.name : "off");
 }
-// Picks the last port used (and waits for it if it is unplugged), else the first real one
-function midiList(manual) {
-  const sel = $("#midiOut");
+function setClockOut(out, remember) {
+  out = out || null;
+  if (midi.sync !== out) clockStop();                              // the old port stops after the clocks it already has
+  midi.sync = out;
+  $("#clockOut").value = out ? out.id : "";
+  if (remember) store(CLOCK_KEY, out ? out.name : "off");
+}
+// Notes: the last port used (waiting for it while unplugged), else the first real one.
+// Clock: only a port picked for it before, or the first real one when connecting from its menu.
+// who: the menu that asked to connect ("out" or "clock"), null when it happens on its own.
+function midiList(who) {
   const outs = [...midi.access.outputs.values()].filter(o => o.state !== "disconnected");
+  const first = outs.find(o => !/GS Wavetable/i.test(o.name));
+  const byName = n => outs.find(o => o.name === n);
   if (midi.out && !outs.some(o => o.id === midi.out.id)) setMidiOut(null);      // unplugged
+  if (midi.sync && !outs.some(o => o.id === midi.sync.id)) setClockOut(null);
   if (!midi.out) {
-    let last = null;
-    try { last = localStorage.getItem(MIDI_KEY); } catch (e) { /* storage blocked */ }
-    if (manual && last === "off") last = null;
-    const first = outs.find(o => !/GS Wavetable/i.test(o.name));
-    const d = last === "off" ? null : !last ? first : outs.find(o => o.name === last) || (manual ? first : null);
-    if (d) setMidiOut(d, manual);
+    let last = stored(MIDI_KEY);
+    if (who === "out" && last === "off") last = null;
+    if (who === "clock" && last == null) { last = "off"; store(MIDI_KEY, "off"); }   // connecting for clock only keeps the notes off
+    const d = last === "off" ? null : !last ? first : byName(last) || (who === "out" ? first : null);
+    if (d) setMidiOut(d, who === "out");
   }
-  const none = new Option("No MIDI outputs found", "-");
-  none.disabled = true;
-  sel.replaceChildren(new Option("Off", ""), ...outs.map(o => new Option(o.name, o.id)), ...(outs.length ? [] : [none]));
-  sel.value = midi.out ? midi.out.id : "";
+  if (!midi.sync) {
+    const last = stored(CLOCK_KEY);
+    const d = who === "clock" ? byName(last) || first : last && last !== "off" ? byName(last) : null;
+    if (d) setClockOut(d, who === "clock");
+  }
+  for (const [sel, port] of [[$("#midiOut"), midi.out], [$("#clockOut"), midi.sync]]) {
+    const none = new Option("No MIDI outputs found", "-");
+    none.disabled = true;
+    sel.replaceChildren(new Option("Off", ""), ...outs.map(o => new Option(o.name, o.id)), ...(outs.length ? [] : [none]));
+    sel.value = port ? port.id : "";
+  }
 }
-async function midiConnect(manual) {
+async function midiConnect(who) {
   try { midi.access = await navigator.requestMIDIAccess(); }
   catch (e) {
-    if (manual) toast("MIDI is blocked: allow it in the site settings");
+    if (who) toast("MIDI is blocked: allow it in the site settings");
     $("#midiOut").value = "";
+    $("#clockOut").value = "";
     return;
   }
-  midi.access.onstatechange = () => midiList(false);
-  midiList(manual);
+  midi.access.onstatechange = () => midiList(null);
+  midiList(who);
 }
 function midiSetup() {
-  const sel = $("#midiOut");
+  const sels = [$("#midiOut"), $("#clockOut")];
   if (!navigator.requestMIDIAccess) {
-    sel.replaceChildren(new Option("Not available in this browser", ""));
-    sel.disabled = true;
+    sels.forEach(sel => { sel.replaceChildren(new Option("Not available in this browser", "")); sel.disabled = true; });
     return;
   }
-  sel.replaceChildren(new Option("Off", ""), new Option("Connect…", "?"));
-  sel.addEventListener("change", () => {
-    if (sel.value === "?") midiConnect(true);
-    else setMidiOut(sel.value && midi.access ? midi.access.outputs.get(sel.value) : null, true);
+  sels.forEach((sel, i) => {
+    sel.replaceChildren(new Option("Off", ""), new Option("Connect…", "?"));
+    sel.addEventListener("change", () => {
+      if (sel.value === "?") { midiConnect(i ? "clock" : "out"); return; }
+      const port = sel.value && midi.access ? midi.access.outputs.get(sel.value) : null;
+      if (i) setClockOut(port, true); else setMidiOut(port, true);
+    });
   });
   $("#local").addEventListener("change", e => { midi.local = e.target.checked; });
-  addEventListener("pagehide", () => { if (midi.out) MIDI_CH.forEach(ch => midiSend([0xB0 | ch, 123, 0])); });   // all notes off
-  try { navigator.permissions.query({ name: "midi" }).then(s => { if (s.state === "granted") midiConnect(false); }, () => {}); }
+  addEventListener("pagehide", () => {
+    if (midi.out) MIDI_CH.forEach(ch => midiSend([0xB0 | ch, 123, 0]));   // all notes off
+    clockStop(true);                                                       // Stop right away
+  });
+  try { navigator.permissions.query({ name: "midi" }).then(s => { if (s.state === "granted") midiConnect(null); }, () => {}); }
   catch (e) { /* no Permissions API */ }
 }
 
