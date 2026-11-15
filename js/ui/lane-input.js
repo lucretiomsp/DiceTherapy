@@ -4,7 +4,7 @@ import { dragDur, effDur, ownerOf } from "../sequencer/timeline.js";
 // Step edits and pattern shifts go straight to the session and redraw one lane; everything that reaches beyond the
 // lanes (mute, reroll, lane length) is handed to `actions`.
 //
-// actions: { toggleMute(k), rerollTrack(k, button), setTrackLen(k, n), setGate(k, v) }
+// actions: { toggleMute(k), toggleSolo(k), rerollTrack(k, button), setTrackLen(k, n), setGate(k, v) }
 export class LaneInput {
   #drag = null;        // pointer press on a step, becomes a duration drag once it moves
   #lastPtr = 0;        // when and where the last pointer tap ended, to drop the click that follows
@@ -43,6 +43,7 @@ export class LaneInput {
     if (!lane) return;
     const k = +lane.dataset.k;
     if (e.target.closest(".mute")) { this.actions.toggleMute(k); return; }
+    if (e.target.closest(".solo")) { this.actions.toggleSolo(k); return; }
     const rr = e.target.closest(".reroll");
     if (rr) { this.actions.rerollTrack(k, rr); return; }
     const sh = e.target.closest("[data-shift]");

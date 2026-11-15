@@ -54,6 +54,7 @@ export class App {
       view: this.lanes,
       actions: {
         toggleMute: this.toggleMute,
+        toggleSolo: this.toggleSolo,
         rerollTrack: this.rerollTrack,
         setTrackLen: this.setTrackLen,
         setGate: (k, v) => this.session.setGate(k, v),
@@ -104,11 +105,14 @@ export class App {
     restartAnimation(button, "spin");
   };
 
-  toggleMute = k => {
-    const muted = this.session.toggleMute(k);
-    if (k >= 0) this.audio.setTrackMuted(k, muted);
-    this.lanes.updateLane(k);
-  };
+  toggleMute = k => { this.session.toggleMute(k); this.#applyMix(); };
+  toggleSolo = k => { this.session.toggleSolo(k); this.#applyMix(); };
+
+  // after a mute or solo: each synth lane's gain follows whether it is heard, and every lane repaints
+  #applyMix() {
+    this.session.tracks.forEach((_, k) => this.audio.setTrackMuted(k, !this.session.isAudible(k)));
+    this.lanes.updateMix();
+  }
 
   copyCoypu = async () => {
     const txt = coypuCode(this.session);

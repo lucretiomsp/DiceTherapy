@@ -2,16 +2,17 @@
 .seq.panel{padding-top:0;display:grid;container-type:inline-size}
 .lane{display:grid;gap:10px;padding:14px 0 18px}
 .lane+.lane{border-top:1px solid var(--mid)}
-.lh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px 10px;align-items:center}
+.lh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:8px 10px;align-items:center}
 .lh .num{grid-row:1;grid-column:1}
 .lh .lname{grid-row:1;grid-column:2}
 .lh .mute{grid-row:1;grid-column:3}
-.lh .reroll{grid-row:1;grid-column:4}
+.lh .solo{grid-row:1;grid-column:4}
+.lh .reroll{grid-row:1;grid-column:5}
 .lh .lctl{grid-row:2;grid-column:2/-1}
 .lh .src{grid-row:3;grid-column:2/-1}
 .kick .lh .src{grid-row:2}
-/* the kick has no reroll key: hold its column so every M key lines up */
-.kick .lh::after{content:"";grid-row:1;grid-column:4;width:40px}
+/* the kick has no reroll key: hold its column so every M and S key lines up */
+.kick .lh::after{content:"";grid-row:1;grid-column:5;width:40px}
 .lctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .lctl .grp{display:inline-flex;align-items:center;gap:8px}
 .lctl .grp.g{margin-left:auto}
@@ -32,6 +33,8 @@
 .ib svg{width:18px;height:18px}
 .ib.reroll svg{width:24px;height:24px}
 .ib[aria-pressed="true"]{background:var(--print);color:var(--ground)}
+/* a lit S is yellow, the usual solo colour, so it is never confused with a lit M */
+.ib.solo[aria-pressed="true"]{background:#ffd23f}
 .grid{display:grid;gap:12px}
 .bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
 @container (min-width:620px){.bar{grid-template-columns:repeat(4,minmax(0,1fr))}}

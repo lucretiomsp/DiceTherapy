@@ -19,16 +19,16 @@ function srcHTML(tr) {
 }
 
 function laneHeadHTML(k) {
-  if (k < 0) return `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`;
+  if (k < 0) return `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><button type="button" class="ib solo" aria-label="Solo kick">S</button><code class="src"></code>`;
   const nm = ROLE[k].name;
-  return `<span class="num">${k + 1}</span><span class="lname">${nm}<span class="ch">CH ${MIDI_CH[k] + 1}</span><small>${rangeTxt(ROLE[k])}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.dice}</button>` +
+  return `<span class="num">${k + 1}</span><span class="lname">${nm}<span class="ch">CH ${MIDI_CH[k] + 1}</span><small>${rangeTxt(ROLE[k])}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib solo" aria-label="Solo ${nm}">S</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.dice}</button>` +
     `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select></span>` +
     `<span class="grp"><span class="lbl">Shift</span><span class="stepper"><button type="button" class="ib sm" data-shift="-1" aria-label="${nm}: shift the pattern one step left">−</button>` +
     `<button type="button" class="ib sm" data-shift="1" aria-label="${nm}: shift the pattern one step right">+</button></span></span>` +
     `<span class="grp g"><span class="lbl">Gate</span><select class="sel gate" aria-label="${nm} gate time">${GATE_OPTS}</select></span></div><code class="src"></code>`;
 }
 
-// The sequencer: the kick lane (k = -1) and one lane per synth (k = 0..2).
+// The sequencer: the kick lane (k = -1) and one lane per synth (k = 0..ROLE.length - 1).
 // Lane index li = k + 1 in the per-lane arrays.
 export class LanesView {
   #cells = [];         // cells per lane (kick first)
@@ -111,8 +111,7 @@ export class LanesView {
     const s = this.session, lane = cells[0].closest(".lane"), M = s.steps;
     if (k < 0) {
       cells.forEach((c, i) => c.classList.toggle("on", i % 4 === 0));
-      lane.classList.toggle("muted", !s.kickOn);
-      lane.querySelector(".mute").setAttribute("aria-pressed", String(!s.kickOn));
+      this.#paintMix(k, lane);
       lane.querySelector(".src").innerHTML = `<span class="tag">4/4</span>${M} downbeats`;
       return;
     }
@@ -136,11 +135,22 @@ export class LanesView {
         c.setAttribute("aria-label", `${R.name} step ${i + 1}: off${out}`);
       }
     });
-    lane.classList.toggle("muted", tr.muted);
-    lane.querySelector(".mute").setAttribute("aria-pressed", String(tr.muted));
+    this.#paintMix(k, lane);
     lane.querySelector(".src").innerHTML = srcHTML(tr);
     lane.querySelector(".sel.len").value = String(tr.len);
     lane.querySelector(".sel.gate").value = String(tr.gate);
+  }
+
+  // Mute and solo touch every lane at once: repaint just the M and S keys and the silenced look.
+  updateMix() {
+    this.host.querySelectorAll(".lane").forEach(lane => this.#paintMix(+lane.dataset.k, lane));
+  }
+  // A lane that is not heard (muted, or left out by a solo) goes purple.
+  #paintMix(k, lane) {
+    const s = this.session, muted = k < 0 ? !s.kickOn : s.tracks[k].muted, solo = k < 0 ? s.kickSolo : !!s.tracks[k].solo;
+    lane.classList.toggle("muted", !s.isAudible(k));
+    lane.querySelector(".mute").setAttribute("aria-pressed", String(muted));
+    lane.querySelector(".solo").setAttribute("aria-pressed", String(solo));
   }
 
   // g: pattern step, -1 clears. The kick lane shows g, each synth lane its own step g % len.

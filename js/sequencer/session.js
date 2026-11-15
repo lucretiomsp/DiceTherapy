@@ -15,7 +15,8 @@ export class Session {
   bpm = 136;
   rnd = 60;            // % of lanes that get a random rhythm instead of a world rhythm
   micro = true;        // microtonal scales allowed
-  kickOn = true;
+  kickOn = true;       // kick not muted
+  kickSolo = false;
   harmony = [];        // one chord per bar
   tracks = [];         // one per ROLE
 
@@ -111,6 +112,21 @@ export class Session {
     tr.muted = !tr.muted;
     return tr.muted;
   }
+  // k = -1 is the kick. Returns whether the lane is now soloed.
+  toggleSolo(k) {
+    if (k < 0) { this.kickSolo = !this.kickSolo; return this.kickSolo; }
+    const tr = this.tracks[k];
+    tr.solo = !tr.solo;
+    return tr.solo;
+  }
+  get anySolo() { return this.kickSolo || this.tracks.some(t => t.solo); }
+  // Whether lane k (-1 = kick) is heard: not muted, and soloed whenever any lane is. Mute wins.
+  isAudible(k) {
+    const solo = this.anySolo;
+    if (k < 0) return this.kickOn && (!solo || this.kickSolo);
+    const tr = this.tracks[k];
+    return !tr.muted && (!solo || !!tr.solo);
+  }
 
   /* ----------------------------- private ---------------------------- */
   #pickScale() {
@@ -125,7 +141,7 @@ export class Session {
     const len = old ? old.len : Math.min(this.steps, MAXL);
     const r = makeRhythm(len, this.rnd / 100, used);
     const tr = {
-      len, gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false,
+      len, gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false, solo: old ? !!old.solo : false,
       gate: old && old.gateSet ? old.gate : randGate(R), gateSet: !!(old && old.gateSet),
       notes: Array(MAXL).fill(null), vel: Array(MAXL).fill(0), dur: Array(MAXL).fill(1),
     };

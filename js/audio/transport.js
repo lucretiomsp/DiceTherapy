@@ -29,7 +29,7 @@ export class Transport extends Emitter {
 
   async start() {
     const { session, audio, midi } = this;
-    const ok = await audio.ensure({ muted: session.tracks.map(t => t.muted), stepDuration: session.stepDuration });
+    const ok = await audio.ensure({ muted: session.tracks.map((_, k) => !session.isAudible(k)), stepDuration: session.stepDuration });
     if (!ok) { this.emit("notice", "Audio is blocked here. Tap Play again."); return; }
     if (midi.out || midi.sync) await midi.settle();
     midi.resetTimebase();                                             // fresh audio-to-MIDI offset: it is not tracked while stopped
@@ -55,14 +55,14 @@ export class Transport extends Emitter {
   #playStep(g, t) {
     const { session, audio, midi } = this, M = session.steps, sd = session.stepDuration;
     if (midi.sync) midi.clockTicks(g, t, sd);
-    if (session.kickOn && g % 4 === 0) audio.playKick(t, g % 16 === 0 ? 1 : .9);
+    if (g % 4 === 0 && session.isAudible(-1)) audio.playKick(t, g % 16 === 0 ? 1 : .9);
     session.tracks.forEach((tr, k) => {
       const i = g % tr.len;
       if (!isNote(tr, i)) return;
       const steps = Math.min(tr.dur[i] || 1, gapAhead(tr, g, M));
       const m = tr.notes[i].m, dur = steps * sd * tr.gate, vel = tr.vel[i] || .85;
       if (midi.local) audio.playVoice(k, t, m, dur, vel);
-      if (!tr.muted) midi.note(k, m, t, dur, vel);
+      if (session.isAudible(k)) midi.note(k, m, t, dur, vel);          // the voices are silenced by their lane gain
     });
   }
 

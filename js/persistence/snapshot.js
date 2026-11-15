@@ -12,8 +12,8 @@ export function snapshot(session) {
   if (!session.ctx) return {};
   return {
     v: 2, scale: session.ctx.scale.key, rootPc: session.ctx.rootPc, steps: session.steps, bpm: session.bpm, rnd: session.rnd,
-    micro: session.micro, kick: session.kickOn, harmony: session.harmony.map(c => c.j),
-    tracks: session.tracks.map(t => ({ len: t.len, gates: t.gates, notes: t.notes.map(n => (n ? n.m : null)), vel: t.vel, dur: t.dur, src: t.src, edited: t.edited, muted: t.muted, gate: t.gate, gateSet: t.gateSet })),
+    micro: session.micro, kick: session.kickOn, kickSolo: session.kickSolo, harmony: session.harmony.map(c => c.j),
+    tracks: session.tracks.map(t => ({ len: t.len, gates: t.gates, notes: t.notes.map(n => (n ? n.m : null)), vel: t.vel, dur: t.dur, src: t.src, edited: t.edited, muted: t.muted, solo: !!t.solo, gate: t.gate, gateSet: t.gateSet })),
   };
 }
 
@@ -32,6 +32,7 @@ export function restore(session, d) {
     session.rnd = clamp(+d.rnd || 0, 0, 100);
     session.micro = d.micro !== false;
     session.kickOn = d.kick !== false;
+    session.kickSolo = !!d.kickSolo;
     session.ctx = buildCtx(sc, (d.rootPc | 0) % 12);
     const nb = barsOf(session.steps), hj = Array.isArray(d.harmony) ? d.harmony : [];
     session.harmony = hj.length === nb && hj.every(j => j >= 0 && j < session.ctx.asc.length) ? hj.map(j => chordOn(session.ctx, j)) : makeHarmony(session.ctx, nb);
@@ -43,7 +44,7 @@ export function restore(session, d) {
         gates: pad(t.gates, 0).map(g => (g ? 1 : 0)),
         notes: pad(t.notes, null).map(m => (m == null ? null : pool.find(p => near(p.m, m)) || null)),
         vel: pad(t.vel, .85).map(Number), dur: pad(v1 ? null : t.dur, 0).map(Number),
-        src: t.src && typeof t.src === "object" ? t.src : { kind: "random", prob: 50 }, edited: !!t.edited, muted: !!t.muted,
+        src: t.src && typeof t.src === "object" ? t.src : { kind: "random", prob: 50 }, edited: !!t.edited, muted: !!t.muted, solo: !!t.solo,
         gate: roundGate(+(v1 ? t.gateFrac : t.gate) || .8), gateSet: !!t.gateSet,
       };
       tr.gates.forEach((g, i) => { if (isNote(tr, i) && !(tr.dur[i] >= 1)) tr.dur[i] = Math.min(gapIn(tr, i), ROLE[k].hold); });
