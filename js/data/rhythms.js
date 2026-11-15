@@ -1,0 +1,20 @@
+// Coypu world rhythms (src/Coypu/Integer.extension.st). `N name` tiles the pattern to N steps.
+export const WORLD = [
+  ["adowa", "00010101", "Ashanti, Ghana"],
+  ["aksak", "1010001000", "Balkan, pseudo aksak"],
+  ["banda", "10110110", "Haiti, cinquillo"],
+  ["bembe", "1001001010010010", "Afro-Cuban, 16 pulses"],
+  ["bomba", "10011110", "Puerto Rico"],
+  ["bossa", "1001001001001000", "Brazil"],
+  ["claveSon", "1001001000101000", "Cuba"],
+  ["cumbiaClave", "1000101010001010", "Colombia"],
+  ["gahu", "1001001000100010", "Ewe people"],
+  ["plena", "1001010010010100", "Puerto Rico"],
+  ["rumba", "1001000100101000", "Cuba"],
+  ["shiko", "1000101000101000", "West Africa, Caribbean"],
+  ["sikyi", "00010101", "Ashanti, Ghana"],
+  ["soukous", "1001001000110000", "Central Africa"],
+  ["tresillo", "10010010", "Cuba"],
+  ["trueAksak", "1010101001010", "Balkan aksak, 13 pulses"],
+  ["tumbao", "10011010", "Habanera, tumbao"],
+].map(([name, pat, origin]) => ({ name, pat: [...pat].map(Number), origin }));

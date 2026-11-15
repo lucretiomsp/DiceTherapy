@@ -1,0 +1,9 @@
+/* toast + modal: no fades, a solid backdrop */
+.toast{position:fixed;z-index:20;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100% - 32px);padding:10px 14px;background:var(--print);color:var(--ground);font:semi-condensed 700 12px/1.25 var(--sans);letter-spacing:.06em;text-transform:uppercase;opacity:0;pointer-events:none}
+.toast.show{opacity:1}
+.modal{position:fixed;z-index:30;inset:0;display:none;place-items:center;padding:16px;background:var(--ground)}
+.modal.open{display:grid}
+.mbox{width:min(680px,100%);display:grid;gap:12px;padding:16px;border:2px solid var(--print);background:var(--ground)}
+.mbox h2{margin:0;font:condensed 800 24px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase}
+.mbox textarea{width:100%;min-height:240px;padding:10px;border:0;background:var(--deep);color:var(--print);font:400 12px/1.5 var(--mono);resize:vertical}
+.mbox .row{justify-content:flex-end}

@@ -1,0 +1,77 @@
+{
+  "version": 5,
+  "conversationOrder": [
+    "conv_cp613ivef"
+  ],
+  "activeConversationId": "conv_cp613ivef",
+  "messageHistory": [
+    {
+      "content": "we must clean up this mess. everything lives inside html. we need separate files for html and css and js. js probably many file. act as a senior developer with knowledge of Design Patterns",
+      "attachments": []
+    },
+    {
+      "content": "so it is ready to commit and push? how many of weekyl usage did we burn?",
+      "attachments": []
+    }
+  ],
+  "metadata": {
+    "hasScannedAIFiles": true
+  },
+  "windowStates": {
+    "main": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "hasPos": false,
+      "maximised": false,
+      "fullscreen": false,
+      "ui": {
+        "juggler-info-cards-hidden": {
+          "hidden": [
+            "usage"
+          ]
+        },
+        "juggler-tool-grouping": false
+      }
+    }
+  },
+  "boards": {
+    "main": {
+      "id": "main",
+      "seeded": true,
+      "pins": [
+        {
+          "id": "pin_mwho4gqd_hqti7zxh",
+          "type": "plan",
+          "config": {},
+          "addedAt": "2026-11-15T10:04:48Z"
+        },
+        {
+          "id": "pin_mwho4gqd_7e1yrvr9",
+          "type": "todo",
+          "config": {},
+          "addedAt": "2026-11-15T10:04:48Z"
+        },
+        {
+          "id": "pin_mwho4gqd_tcpcmna2",
+          "type": "git",
+          "config": {},
+          "addedAt": "2026-11-15T10:04:48Z"
+        },
+        {
+          "id": "pin_mwho4gqd_x27llzpi",
+          "type": "tasks",
+          "config": {},
+          "addedAt": "2026-11-15T10:04:48Z"
+        },
+        {
+          "id": "pin_mwho4gqd_7dbp3h2s",
+          "type": "memory",
+          "config": {},
+          "addedAt": "2026-11-15T10:04:48Z"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+/* footer */
+.foot{display:grid;gap:10px;padding-top:14px;border-top:2px solid var(--print);color:var(--soft);font-size:12px;line-height:1.55}
+.foot p{margin:0;max-width:74ch}
+.foot b{color:var(--print);font-weight:700}
+.foot code{font:400 11px/1 var(--mono);color:var(--print)}

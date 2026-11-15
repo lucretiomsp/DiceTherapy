@@ -1,0 +1,21 @@
+:root{
+  /* Two hues in shades, flat fills, square corners, high contrast.
+     Purple is the panel, green is the music: a sounding voice is green, darker for lower
+     voices (saw dark, square mid, tri light). The kick and muted lanes print in purple. */
+  --ground:#1f0a3a;   /* deepest purple */
+  --deep:#48237a;     /* keys, empty steps */
+  --mid:#9a78dc;      /* kick, muted notes, rules, ticks */
+  --soft:#c2aef0;     /* secondary type */
+  --print:#f7f2ff;    /* type and lit keys */
+  --g-dark:#17a352;
+  --g-mid:#4fe58c;
+  --g-light:#c4ffd3;
+  --kick:var(--mid);
+  --saw:var(--g-dark);
+  --sqr:var(--g-mid);
+  --tri:var(--g-light);
+  --ink:var(--print);
+  --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}

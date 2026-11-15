@@ -1,0 +1,21 @@
+import { clamp, rand } from "../core/util.js";
+
+// The three synth lanes. Index k is used everywhere: track k, voice k, MIDI channel k + 1.
+// hold: notes usually last until the next one, up to this many steps; maxDur, longP: occasional
+// long notes, likelier on strong beats; shortP: chance of a single step; gf: gate range (gateTimes)
+export const ROLE = [
+  { key: "saw", name: "Saw", role: "bass", lo: 24, hi: 48, spread: 10, tau: 1.45, hold: 2, maxDur: 4, longP: .15, shortP: .35, gf: [.55, .9] },
+  { key: "square", name: "Square", role: "mid", lo: 48, hi: 70, center: 59, spread: 7, tau: 1.2, hold: 2, maxDur: 4, longP: .2, shortP: .3, gf: [.45, .85] },
+  { key: "tri", name: "Tri", role: "lead", lo: 62, hi: 86, center: 73, spread: 8, tau: 1.15, hold: 3, maxDur: 8, longP: .35, shortP: .15, gf: [.6, .95] },
+];
+// Metric weight of each 16th in a bar
+export const BEAT = [1, .2, .45, .25, .75, .2, .45, .25, .9, .2, .45, .25, .75, .2, .45, .25];
+export const roundGate = x => clamp(Math.round(x * 20) / 20, .25, 1);
+export const randGate = R => roundGate(rand(R.gf[0], R.gf[1]));
+export function genDur(R, step, gap) {
+  const cap = Math.min(gap, R.maxDur);
+  let d = Math.min(gap, R.hold);
+  if (cap > d && Math.random() < R.longP * (.4 + BEAT[step % 16])) d += 1 + Math.floor(Math.random() * (cap - d));
+  else if (d > 1 && Math.random() < R.shortP) d = 1;
+  return d;
+}

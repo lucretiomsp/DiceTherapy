@@ -1,0 +1,10 @@
+*{box-sizing:border-box;border-radius:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--print);font:400 13px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+button:disabled{color:var(--mid);cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--print);outline-offset:2px}
+code{font:inherit}
+[hidden]{display:none!important}
+/* one label style: small grotesque caps, wide tracking */
+.lbl,.facts dt,.cap,.keys,.topmeta{font:semi-condensed 600 10px/1.2 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}

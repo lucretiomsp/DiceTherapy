@@ -1,0 +1,9 @@
+.app{max-width:1200px;margin:0 auto;padding:12px 16px calc(100px + env(safe-area-inset-bottom));display:grid;gap:18px}
+.side,.main{display:grid;gap:18px;min-width:0;align-content:start}
+.panel{border-top:2px solid var(--print);padding-top:14px}
+
+/* masthead */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:4px solid var(--print)}
+.brand{font:extra-condensed 900 34px/.8 var(--sans);letter-spacing:.01em;text-transform:uppercase;white-space:nowrap}
+.topmeta{text-align:right}
+.topmeta span{white-space:nowrap}
