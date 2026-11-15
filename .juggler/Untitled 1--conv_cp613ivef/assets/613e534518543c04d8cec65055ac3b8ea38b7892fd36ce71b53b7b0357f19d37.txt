@@ -1,0 +1,28 @@
+:root{
+  /* Flat fills, square corners, high contrast.
+     Purple is the panel; the kick and muted lanes print in its lavender (--mid).
+     Each synth lane has its own hue, so lanes are told apart at a glance:
+       1 saw orange · 2 square blue · 3 tri green · 4 bell yellow
+       5 acid violet · 6 pluck red · 7 pad grey · 8 organ cyan
+     The violet is kept vivid and pinker than --mid, so a sounding lane never reads as muted.
+     Every colour keeps black type readable on it. */
+  --ground:#000;   /* black */
+  --deep:#48237a;     /* keys, empty steps */
+  --mid:#9a78dc;      /* kick, muted notes, rules, ticks */
+  --soft:#c2aef0;     /* secondary type */
+  --print:#f7f2ff;    /* type and lit keys */
+  --g-mid:#4fe58c;    /* play button while playing */
+  --kick:var(--mid);
+  --saw:#ff9933;      /* 1 orange */
+  --square:#4f9dff;   /* 2 blue */
+  --tri:#4fe58c;      /* 3 green */
+  --bell:#ffe14d;     /* 4 yellow */
+  --acid:#dc6cff;     /* 5 violet */
+  --pluck:#ff5c5c;    /* 6 red */
+  --pad:#b0b0b0;      /* 7 grey */
+  --organ:#3fe6e6;    /* 8 cyan */
+  --ink:var(--print);
+  --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}

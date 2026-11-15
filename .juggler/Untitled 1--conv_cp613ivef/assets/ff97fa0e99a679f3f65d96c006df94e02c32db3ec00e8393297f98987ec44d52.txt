@@ -1,0 +1,35 @@
+:root{
+  /* Flat fills, square corners, high contrast.
+     Purple is the panel; the kick and muted lanes print in its lavender (--mid).
+     Each synth lane has its own hue, so lanes are told apart at a glance:
+       1 saw orange · 2 square blue · 3 tri green · 4 bell yellow
+       5 acid violet · 6 pluck red · 7 pad grey · 8 organ cyan
+     The violet is kept vivid and pinker than --mid, so a sounding lane never reads as muted.
+     Every colour keeps black type readable on it. */
+  --ground:#000;   /* black */
+  --deep:#48237a;     /* keys, empty steps */
+  --mid:#9a78dc;      /* kick, muted notes, rules, ticks */
+  --soft:#c2aef0;     /* secondary type */
+  --print:#f7f2ff;    /* type and lit keys */
+  --g-dark:#17a352;
+  --g-mid:#4fe58c;
+  --g-light:#c4ffd3;
+  --t-dark:#0f9cb3;
+  --t-mid:#3ddbcf;
+  --t-light:#a2e6f8;
+  --l-dark:#a3d12b;
+  --l-light:#e8f690;
+  --kick:var(--mid);
+  --saw:var(--g-dark);
+  --square:var(--g-mid);
+  --tri:var(--g-light);
+  --pad:var(--t-dark);
+  --pluck:var(--t-mid);
+  --bell:var(--t-light);
+  --acid:var(--l-dark);
+  --organ:var(--l-light);
+  --ink:var(--print);
+  --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
