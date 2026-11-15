@@ -38,15 +38,15 @@ function melodic(p, prev, role, lastLeap, pool) {
   return w;
 }
 // o.occ: the pattern positions where this step is heard. With lanes shorter than the pattern a
-// step comes back over several chords, so the vertical fit (chord, metric strength, bass, mid)
-// is a geometric mean over all of them: one bad clash pulls a note down.
+// step comes back over several chords, so the vertical fit (chord, metric strength, the lanes in
+// the role's `fit`) is a geometric mean over all of them: one bad clash pulls a note down.
 export function noteWeights(k, pool, o, harmony, ctx) {
   const R = ROLE[k];
   const per = o.occ.map(g => {
     const chord = chordAt(harmony, g), s = BEAT[g % 16];
     let e = R.role === "bass" ? .8 + 2.4 * s : .5 + 1.8 * s;
     if (o.isFirst) e = Math.max(e, R.role === "bass" ? 2.6 : 1.6);
-    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, bass: o.refs.bassAt[g] ?? null, mid: o.refs.midAt[g] ?? null, lead: o.refs.leadAt[g] ?? null };
+    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, at: R.fit.map(([j]) => o.refs.at[j]?.[g] ?? null) };
   });
   const chord0 = chordAt(harmony, o.occ[0]);
   let center = R.center;
@@ -61,18 +61,12 @@ export function noteWeights(k, pool, o, harmony, ctx) {
       let h = cons(p.m - q.root);
       if (q.tones.has(p.d.ai)) h += (1 - h) * .45;
       let v = Math.pow(h, q.e);
-      if (R.role !== "bass" && q.bass != null) v *= Math.pow(cons(p.m - q.bass), 1.3);
-      if (R.role === "lead" && q.mid != null) {
-        v *= Math.pow(cons(p.m - q.mid), 1.1);
-        if (near(p.m, q.mid)) v *= .25;
-      }
-      if (R.role === "bell") {                       // above the lead: fit it, never double it
-        if (q.mid != null) v *= Math.pow(cons(p.m - q.mid), .8);
-        if (q.lead != null) {
-          v *= Math.pow(cons(p.m - q.lead), 1.1);
-          if (near(p.m, q.lead)) v *= .25;
-        }
-      }
+      R.fit.forEach(([, strength, avoidUnison], n) => {   // against the lanes below
+        const r = q.at[n];
+        if (r == null) return;
+        v *= Math.pow(cons(p.m - r), strength);
+        if (avoidUnison && near(p.m, r)) v *= .25;
+      });
       lw += Math.log(v + 1e-12);
     }
     let w = Math.exp(lw / per.length);
@@ -85,24 +79,27 @@ export function noteWeights(k, pool, o, harmony, ctx) {
     return w * Math.exp(-z * z);
   });
 }
-// What the bass, mid and lead play at each pattern position, following each lane's own loop.
-// The bass is held between notes; mid and lead count only where a note starts.
+// What each lane plays at each pattern position, following its own loop: { at: [lane][g] }.
+// The bass (lane 0) is held between notes; the other lanes count only where a note starts.
 // Positions past the pattern end are filled too, for lane steps the pattern never reaches.
+// Only lanes some role listens to are worked out.
+const LISTENED = new Set(ROLE.flatMap(R => R.fit.map(([j]) => j)));
 export function voiceRefs(tracks, steps) {
-  const G = Math.max(steps, MAXL), T = tracks;
-  const bassAt = Array(G).fill(null), midAt = Array(G).fill(null), leadAt = Array(G).fill(null);
-  const b = T[0];
-  if (b && b.notes) {
-    const L = b.len, held = Array(L).fill(null);
-    let last = null;
-    for (let i = 0; i < L; i++) if (isNote(b, i)) last = b.notes[i].m;   // the loop's last note carries into its start
-    for (let i = 0; i < L; i++) { if (isNote(b, i)) last = b.notes[i].m; held[i] = last; }
-    for (let g = 0; g < G; g++) bassAt[g] = held[g % L];
-  }
-  const onsets = (tr, at) => { if (tr && tr.notes) for (let g = 0; g < G; g++) { const i = g % tr.len; if (isNote(tr, i)) at[g] = tr.notes[i].m; } };
-  onsets(T[1], midAt);
-  onsets(T[2], leadAt);
-  return { bassAt, midAt, leadAt };
+  const G = Math.max(steps, MAXL);
+  const at = tracks.map((tr, k) => {
+    const a = Array(G).fill(null);
+    if (!LISTENED.has(k) || !tr || !tr.notes) return a;
+    const L = tr.len;
+    if (k === 0) {
+      const held = Array(L).fill(null);
+      let last = null;
+      for (let i = 0; i < L; i++) if (isNote(tr, i)) last = tr.notes[i].m;   // the loop's last note carries into its start
+      for (let i = 0; i < L; i++) { if (isNote(tr, i)) last = tr.notes[i].m; held[i] = last; }
+      for (let g = 0; g < G; g++) a[g] = held[g % L];
+    } else for (let g = 0; g < G; g++) { const i = g % L; if (isNote(tr, i)) a[g] = tr.notes[i].m; }
+    return a;
+  });
+  return { at };
 }
 // Notes, velocities and durations for steps 0..len-1 of lane k in an M-step pattern; steps past
 // its length are cleared and get notes when the lane grows over them.

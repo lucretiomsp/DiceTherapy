@@ -1,0 +1,95 @@
+import { VOICES, kick } from "./voices.js";
+
+// Per lane, in the order of ROLE: stereo position (-1 left .. 1 right) and delay send.
+// Low voices stay central; the rest alternate sides so the image balances (pans sum to ~0).
+const MIX = [
+  { pan: 0, send: 0 },        // Saw
+  { pan: -.22, send: .2 },    // Square
+  { pan: .22, send: .28 },    // Tri
+  { pan: .35, send: .4 },     // Bell
+  { pan: -.08, send: .1 },    // Acid
+  { pan: -.4, send: .35 },    // Pluck
+  { pan: -.15, send: .3 },    // Pad
+  { pan: .3, send: .15 },     // Organ
+];
+
+// Facade over the Web Audio graph: the AudioContext is created lazily on the first user gesture,
+// and callers only ever say "play voice k", "mute lane k", "set the delay".
+//
+//   voices -> track gain k -> panner -> synth bus (ducked) -> master -> compressor -> out
+//                          \-> send -> dotted-8th delay -> synth bus
+//   kick   -> kick bus -> master
+export class AudioEngine {
+  ctx = null;
+  #nodes = null;
+
+  get ready() { return !!(this.ctx && this.#nodes); }
+  get currentTime() { return this.ctx.currentTime; }
+
+  // Resolves true once the context runs. `muted` and `stepDuration` set up a graph built now.
+  ensure({ muted = [], stepDuration } = {}) {
+    try {
+      if (!this.ctx) {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return Promise.resolve(false);
+        try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) { /* iOS ringer switch */ }
+        this.ctx = new Ctor({ latencyHint: "interactive" });
+        this.#build(muted, stepDuration);
+      }
+      const AC = this.ctx;
+      const b = AC.createBuffer(1, 1, AC.sampleRate), s = AC.createBufferSource();   // iOS unlock
+      s.buffer = b; s.connect(AC.destination); s.start(0);
+      if (AC.state === "running") return Promise.resolve(true);
+      return AC.resume().then(() => AC.state === "running", () => false);
+    } catch (e) { return Promise.resolve(false); }
+  }
+
+  playVoice(k, t, m, dur, vel) { VOICES[k](this.ctx, this.#nodes.tracks[k], t, m, dur, vel); }
+  playKick(t, accent) { kick(this.ctx, this.#nodes, t, accent); }
+
+  setDelayTime(stepDuration) {
+    if (this.ready) this.#nodes.dly.delayTime.setTargetAtTime(Math.min(1.9, stepDuration * 3), this.ctx.currentTime, .05);   // dotted 8th
+  }
+  setTrackMuted(k, muted) {
+    if (this.ready) this.#nodes.tracks[k].gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, .012);
+  }
+
+  // context time that is coming out of the speakers right now
+  audibleTime() {
+    const AC = this.ctx;
+    if (AC.getOutputTimestamp) {
+      const ts = AC.getOutputTimestamp();
+      if (ts && ts.contextTime > 0 && ts.performanceTime > 0) return ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
+    }
+    return AC.currentTime - (AC.outputLatency || AC.baseLatency || 0);
+  }
+  outputTimestamp() { return this.ctx.getOutputTimestamp ? this.ctx.getOutputTimestamp() : null; }
+  outputLatency() { return this.ctx.outputLatency || this.ctx.baseLatency || 0; }
+
+  #build(muted, stepDuration) {
+    const c = this.ctx;
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .2;
+    const master = c.createGain(); master.gain.value = .8;
+    master.connect(comp); comp.connect(c.destination);
+    const synth = c.createGain(); synth.connect(master);             // ducked by the kick
+    const kickBus = c.createGain(); kickBus.gain.value = .95; kickBus.connect(master);
+    const dly = c.createDelay(2), fb = c.createGain(), dlp = c.createBiquadFilter(), wet = c.createGain();
+    fb.gain.value = .32; dlp.type = "lowpass"; dlp.frequency.value = 2600; wet.gain.value = .5;
+    dly.connect(dlp); dlp.connect(fb); fb.connect(dly); dlp.connect(wet); wet.connect(synth);
+    const tracks = VOICES.map((_, k) => {
+      const { pan, send } = MIX[k];
+      const g = c.createGain();
+      g.gain.value = muted[k] ? 0 : 1;
+      let out = g;
+      if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
+      out.connect(synth);
+      if (send) { const s = c.createGain(); s.gain.value = send; g.connect(s); s.connect(dly); }
+      return g;
+    });
+    const nb = c.createBuffer(1, Math.floor(c.sampleRate * .02), c.sampleRate), d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    this.#nodes = { synth, kick: kickBus, dly, tracks, noise: nb };
+    if (stepDuration) this.setDelayTime(stepDuration);
+  }
+}

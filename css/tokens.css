@@ -1,7 +1,11 @@
 :root{
-  /* Two hues in shades, flat fills, square corners, high contrast.
-     Purple is the panel, green is the music: a sounding voice is green, darker for lower
-     voices (saw dark, square mid, tri light, bell palest). The kick and muted lanes print in purple. */
+  /* Flat fills, square corners, high contrast.
+     Purple is the panel, the cool-green arc is the music; the kick and muted lanes print in purple.
+     Voices are coloured by family (hue) and register (lightness: darker is lower):
+       green  basic oscillators   saw dark · square mid · tri light
+       teal   struck and blown    pad dark · pluck mid · bell light
+       lime   electric            acid dark · organ light
+     Every colour keeps black type readable on it, and none comes near the purples. */
   --ground:#000;   /* black */
   --deep:#48237a;     /* keys, empty steps */
   --mid:#9a78dc;      /* kick, muted notes, rules, ticks */
@@ -10,12 +14,20 @@
   --g-dark:#17a352;
   --g-mid:#4fe58c;
   --g-light:#c4ffd3;
-  --g-pale:#e9fff0;
+  --t-dark:#0f9cb3;
+  --t-mid:#3ddbcf;
+  --t-light:#a2e6f8;
+  --l-dark:#a3d12b;
+  --l-light:#e8f690;
   --kick:var(--mid);
   --saw:var(--g-dark);
-  --sqr:var(--g-mid);
+  --square:var(--g-mid);
   --tri:var(--g-light);
-  --bell:var(--g-pale);
+  --pad:var(--t-dark);
+  --pluck:var(--t-mid);
+  --bell:var(--t-light);
+  --acid:var(--l-dark);
+  --organ:var(--l-light);
   --ink:var(--print);
   --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;

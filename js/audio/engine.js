@@ -1,5 +1,18 @@
 import { VOICES, kick } from "./voices.js";
 
+// Per lane, in the order of ROLE: stereo position (-1 left .. 1 right) and delay send.
+// Low voices stay central; the rest alternate sides so the image balances (pans sum to ~0).
+const MIX = [
+  { pan: 0, send: 0 },        // Saw
+  { pan: -.22, send: .2 },    // Square
+  { pan: .22, send: .28 },    // Tri
+  { pan: .35, send: .4 },     // Bell
+  { pan: -.08, send: .1 },    // Acid
+  { pan: -.4, send: .35 },    // Pluck
+  { pan: -.15, send: .3 },    // Pad
+  { pan: .3, send: .15 },     // Organ
+];
+
 // Facade over the Web Audio graph: the AudioContext is created lazily on the first user gesture,
 // and callers only ever say "play voice k", "mute lane k", "set the delay".
 //
@@ -64,14 +77,14 @@ export class AudioEngine {
     const dly = c.createDelay(2), fb = c.createGain(), dlp = c.createBiquadFilter(), wet = c.createGain();
     fb.gain.value = .32; dlp.type = "lowpass"; dlp.frequency.value = 2600; wet.gain.value = .5;
     dly.connect(dlp); dlp.connect(fb); fb.connect(dly); dlp.connect(wet); wet.connect(synth);
-    const pans = [0, -.22, .22, .35], sends = [0, .2, .28, .4];     // per lane: Saw, Square, Tri, Bell
     const tracks = VOICES.map((_, k) => {
+      const { pan, send } = MIX[k];
       const g = c.createGain();
       g.gain.value = muted[k] ? 0 : 1;
       let out = g;
-      if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pans[k]; g.connect(p); out = p; }
+      if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
       out.connect(synth);
-      if (sends[k]) { const s = c.createGain(); s.gain.value = sends[k]; g.connect(s); s.connect(dly); }
+      if (send) { const s = c.createGain(); s.gain.value = send; g.connect(s); s.connect(dly); }
       return g;
     });
     const nb = c.createBuffer(1, Math.floor(c.sampleRate * .02), c.sampleRate), d = nb.getChannelData(0);

@@ -6,8 +6,9 @@ import { noteName } from "../theory/spelling.js";
 import { $ } from "./dom.js";
 import { ICON } from "./icons.js";
 
-const COLORS = ["var(--saw)", "var(--sqr)", "var(--tri)", "var(--bell)"];
-const RANGE_TXT = ["bass · MIDI 24-48", "mid · MIDI 48-70", "lead · MIDI 62-86", "bell · MIDI 72-96"];
+// each lane's colour is the CSS variable named after its key (css/tokens.css)
+const color = k => (k < 0 ? "var(--kick)" : `var(--${ROLE[k].key})`);
+const rangeTxt = R => `${R.tag} · MIDI ${R.lo}-${R.hi}`;
 const LEN_OPTS = Array.from({ length: MAXL - MINL + 1 }, (_, i) => `<option value="${i + MINL}">${i + MINL}</option>`).join("");
 const GATE_OPTS = Array.from({ length: 16 }, (_, i) => { const v = 25 + i * 5; return `<option value="${v / 100}">${v}%</option>`; }).join("");
 
@@ -20,7 +21,7 @@ function srcHTML(tr) {
 function laneHeadHTML(k) {
   if (k < 0) return `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`;
   const nm = ROLE[k].name;
-  return `<span class="num">${k + 1}</span><span class="lname">${nm}<span class="ch">CH ${MIDI_CH[k] + 1}</span><small>${RANGE_TXT[k]}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.dice}</button>` +
+  return `<span class="num">${k + 1}</span><span class="lname">${nm}<span class="ch">CH ${MIDI_CH[k] + 1}</span><small>${rangeTxt(ROLE[k])}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.dice}</button>` +
     `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select></span>` +
     `<span class="grp"><span class="lbl">Shift</span><span class="stepper"><button type="button" class="ib sm" data-shift="-1" aria-label="${nm}: shift the pattern one step left">−</button>` +
     `<button type="button" class="ib sm" data-shift="1" aria-label="${nm}: shift the pattern one step right">+</button></span></span>` +
@@ -49,7 +50,7 @@ export class LanesView {
       const lane = document.createElement("div");
       lane.className = "lane" + (k < 0 ? " kick" : "");
       lane.dataset.k = k;
-      lane.style.setProperty("--c", k < 0 ? "var(--kick)" : COLORS[k]);
+      lane.style.setProperty("--c", color(k));
       const head = document.createElement("div");
       head.className = "lh";
       head.innerHTML = laneHeadHTML(k);
