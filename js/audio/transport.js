@@ -1,4 +1,5 @@
 import { Emitter } from "../core/emitter.js";
+import { isDrum } from "../sequencer/lanes.js";
 import { gapAhead, isNote } from "../sequencer/timeline.js";
 import { createTicker } from "./ticker.js";
 import { LOOKAHEAD } from "./timing.js";
@@ -55,14 +56,16 @@ export class Transport extends Emitter {
   #playStep(g, t) {
     const { session, audio, midi } = this, M = session.steps, sd = session.stepDuration;
     if (midi.sync) midi.clockTicks(g, t, sd);
-    if (g % 4 === 0 && session.isAudible(-1)) audio.playKick(t, g % 16 === 0 ? 1 : .9);
     session.tracks.forEach((tr, k) => {
       const i = g % tr.len;
       if (!isNote(tr, i)) return;
       const steps = Math.min(tr.dur[i] || 1, gapAhead(tr, g, M));
-      const m = tr.notes[i].m, dur = steps * sd * tr.gate, vel = tr.vel[i] || .85;
-      if (midi.local) audio.playVoice(k, t, m, dur, vel);
-      if (session.isAudible(k)) midi.note(k, m, t, dur, vel);          // the voices are silenced by their lane gain
+      const m = tr.notes[i].m, dur = steps * sd * tr.gate, vel = tr.vel[i] || .85, heard = session.isAudible(k);
+      if (isDrum(k)) {
+        // a silent drum is not played at all, so a muted kick does not duck the synths either
+        if (midi.local && heard) audio.playDrum(k, t, vel, dur);
+      } else if (midi.local) audio.playVoice(k, t, m, dur, vel);       // silenced by its lane gain when not heard
+      if (heard) midi.note(k, m, t, dur, vel);
     });
   }
 

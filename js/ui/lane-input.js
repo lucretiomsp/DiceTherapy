@@ -1,6 +1,6 @@
 import { dragDur, effDur, ownerOf } from "../sequencer/timeline.js";
 
-// Input controller for the sequencer lanes (event delegation on the lanes host).
+// Input controller for the sequencer lanes (event delegation on the melody and drum panes).
 // Step edits and pattern shifts go straight to the session and redraw one lane; everything that reaches beyond the
 // lanes (mute, reroll, lane length) is handed to `actions`.
 //
@@ -14,20 +14,20 @@ export class LaneInput {
     this.session = session;
     this.view = view;
     this.actions = actions;
-    this.host = view.host;
   }
 
   bind() {
-    const host = this.host;
-    host.addEventListener("click", this.#onClick);
-    host.addEventListener("change", this.#onChange);
-    // Tap a step to switch it. Press on a note (or a step it holds) and drag to set its length.
-    host.addEventListener("pointerdown", this.#onPointerDown);
+    for (const host of this.view.hosts) {
+      host.addEventListener("click", this.#onClick);
+      host.addEventListener("change", this.#onChange);
+      // Tap a step to switch it. Press on a note (or a step it holds) and drag to set its length.
+      host.addEventListener("pointerdown", this.#onPointerDown);
+      host.addEventListener("contextmenu", e => { if (e.target.closest("button.cell")) e.preventDefault(); });
+      host.addEventListener("keydown", this.#onKeyDown);
+    }
     addEventListener("pointermove", this.#onPointerMove);
     addEventListener("pointerup", this.#onPointerUp);
     addEventListener("pointercancel", e => { if (this.#drag && e.pointerId === this.#drag.id) this.#drag = null; });
-    host.addEventListener("contextmenu", e => { if (e.target.closest("button.cell")) e.preventDefault(); });
-    host.addEventListener("keydown", this.#onKeyDown);
   }
 
   #toggleStep(k, i) {
@@ -63,7 +63,7 @@ export class LaneInput {
 
   #cellAt(x, y) {
     const el = document.elementFromPoint(x, y);
-    return el && el.closest ? el.closest("#lanes button.cell") : null;
+    return el && el.closest ? el.closest(".seq button.cell") : null;
   }
 
   #onPointerDown = e => {

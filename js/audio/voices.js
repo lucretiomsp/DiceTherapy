@@ -170,26 +170,3 @@ function organ(c, out, t, m, dur, vel) {
 // in the order of ROLE
 export const VOICES = [saw, square, tri, bell, acid, pluck, pad, organ];
 
-// The kick: a pitched sine with a noise click, ducking the synth bus. bus: {kick, synth, noise}
-export function kick(c, bus, t, accent) {
-  const o = c.createOscillator(), g = c.createGain();
-  o.type = "sine";
-  o.frequency.setValueAtTime(165, t);
-  o.frequency.exponentialRampToValueAtTime(52, t + .07);
-  o.frequency.exponentialRampToValueAtTime(42, t + .35);
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(accent, t + .002);
-  g.gain.setTargetAtTime(0, t + .05, .1);
-  o.connect(g); g.connect(bus.kick);
-  o.start(t); o.stop(t + .9);
-  cleanup(o, g);
-  const n = c.createBufferSource(), hp = c.createBiquadFilter(), ng = c.createGain();
-  n.buffer = bus.noise; hp.type = "highpass"; hp.frequency.value = 3000; ng.gain.value = .18 * accent;
-  n.connect(hp); hp.connect(ng); ng.connect(bus.kick);
-  n.start(t);
-  cleanup(n, hp, ng);
-  const sg = bus.synth.gain;                                        // sidechain-style duck
-  sg.cancelScheduledValues(t);
-  sg.setTargetAtTime(.5, t, .004);
-  sg.setTargetAtTime(1, t + .04, .09);
-}

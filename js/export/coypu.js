@@ -1,5 +1,5 @@
 import { near } from "../core/util.js";
-import { ROLE } from "../sequencer/roles.js";
+import { LANES, isDrum } from "../sequencer/lanes.js";
 import { gapAhead, isNote } from "../sequencer/timeline.js";
 import { asciiName, pcName } from "../theory/spelling.js";
 
@@ -26,14 +26,14 @@ export function coypuCode(session) {
   L.push(`"Scale Dice: ${asciiName(pcName(ctx.root))} ${ctx.scale.key} (Scale.${ctx.scale.key}), ${session.bpm} bpm, ${M}-step pattern. Rename the track keys to your instruments. durations: are in steps, gateTimes: is the share of each duration that sounds."`);
   L.push("p := Performance uniqueInstance.");
   L.push(`p freq: ${session.bpm} bpm.`);
-  if (session.kickOn) L.push(`${M} downbeats to: #kick.`);
   session.tracks.forEach((tr, k) => {
-    const n = tr.len, fits = M % n === 0, span = fits ? n : M, key = ROLE[k].key;
+    const n = tr.len, fits = M % n === 0, span = fits ? n : M, key = LANES[k].key;
     const ev = laneEvents(tr, span);
     if (!ev.length) { L.push(`"${key}: no notes"`); return; }
     const gates = Array.from({ length: span }, (_, g) => (isNote(tr, g % n) ? 1 : 0));
     const rhythm = fits && tr.src.kind === "world" && !tr.edited ? `${n} ${tr.src.name}` : `#(${gates.join(" ")}) asSeq`;
     const why = fits ? "" : ` "${n} steps written out to ${M}, so it restarts with the pattern"`;
+    if (isDrum(k)) { L.push(`${tr.muted ? '"muted" ' : ""}${rhythm} to: #${key}.${why}`); return; }   // drums: triggers only
     L.push(`${tr.muted ? '"muted" ' : ""}((${rhythm} durations: #(${ev.map(e => e.d).join(" ")})) gateTimes: ${fmtNum(tr.gate)}) notes: #(${ev.map(e => fmtNote(e.m)).join(" ")}) to: #${key}.${why}`);
   });
   L.push("p playFor: 16 bars.");

@@ -1,18 +1,18 @@
 :root{
   /* Flat fills, square corners, high contrast.
-     Purple is the panel; the kick and muted lanes print in its lavender (--mid).
+     Purple is the panel; muted lanes and the chord ruler print in its lavender (--mid).
      Each synth lane has its own hue, so lanes are told apart at a glance:
        1 saw orange · 2 square blue · 3 tri green · 4 bell yellow
        5 acid violet · 6 pluck red · 7 pad grey · 8 organ cyan
+     The chord ruler prints in lavender (--mid) like a muted lane: it never sounds.
      The violet is kept vivid and pinker than --mid, so a sounding lane never reads as muted.
      Every colour keeps black type readable on it. */
   --ground:#000;   /* black */
   --deep:#48237a;     /* keys, empty steps */
-  --mid:#9a78dc;      /* kick, muted notes, rules, ticks */
+  --mid:#9a78dc;      /* muted notes, chord ruler, rules, ticks */
   --soft:#c2aef0;     /* secondary type */
   --print:#f7f2ff;    /* type and lit keys */
   --g-mid:#4fe58c;    /* play button while playing */
-  --kick:var(--mid);
   --saw:#ff9933;      /* 1 orange */
   --square:#4f9dff;   /* 2 blue */
   --tri:#4fe58c;      /* 3 green */
@@ -21,6 +21,17 @@
   --pluck:#ff5c5c;    /* 6 red */
   --pad:#b0b0b0;      /* 7 grey */
   --organ:#3fe6e6;    /* 8 cyan */
+  /* Drums repeat the melody hues one step deeper, lane for lane (9 is 1's orange, 10 is 2's
+     blue...), on their own pane colour: still told apart, clearly a second family. */
+  --kick:#d9711c;        /* 9  deep orange */
+  --snare:#3a7be0;       /* 10 deep blue */
+  --tom:#22b464;         /* 11 deep green */
+  --rim:#d9b21a;         /* 12 deep yellow */
+  --clap:#b14fe0;        /* 13 deep violet */
+  --closedHats:#e03e3e;  /* 14 deep red */
+  --openHats:#8e8e8e;    /* 15 deep grey */
+  --rides:#1fb0b0;       /* 16 deep cyan */
+  --drum-pane:#1f0a3a;   /* the drum pane: the app's original deep purple */
   --ink:var(--print);
   --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;

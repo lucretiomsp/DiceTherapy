@@ -23,12 +23,13 @@ js/
   core/                 util (random, clamp…), Emitter (observer), storage
   data/                 tables: SuperCollider scales, tunings, Coypu world rhythms
   theory/               pure music theory: consonance, spelling, scale context, chords
-  sequencer/            pure pattern logic: timeline, rhythm, roles, melody
+  sequencer/            pure pattern logic: timeline, rhythm, roles (8 melody lanes), drums
+                        (8 drum lanes and their feels), lanes (all 16 in one list), melody
                         + Session, the model all edits go through
   export/coypu.js       the session as a Coypu script
   persistence/          snapshot / restore (memento, v1 and v2)
-  audio/                AudioEngine (Web Audio facade), voices (one strategy per lane),
-                        ticker (worker clock), Transport (lookahead scheduler, emits events)
+  audio/                AudioEngine (Web Audio facade), voices and drum-voices (one strategy
+                        per lane), ticker (worker clock), Transport (lookahead scheduler, emits events)
   midi/                 MidiOutput: notes, pitch bend, clock, port choice (emits events)
   ui/                   one view per part of the page, LaneInput (pointer/keyboard),
                         shortcuts, toast, code dialog

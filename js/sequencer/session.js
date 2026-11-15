@@ -5,6 +5,8 @@ import { makeHarmony } from "../theory/chords.js";
 import { genNotes, noteWeights, poolFor, voiceRefs } from "./melody.js";
 import { makeRhythm } from "./rhythm.js";
 import { BEAT, ROLE, genDur, randGate, roundGate } from "./roles.js";
+import { drumNote, drumVel, makeDrumRhythm } from "./drums.js";
+import { FIRST_DRUM, LANES, isDrum } from "./lanes.js";
 import { MASTERS, MAXL, MINL, barsOf, effDur, gapIn, isNote, occ } from "./timeline.js";
 
 // The model: everything the dice decided and everything the user edited. No DOM, no audio.
@@ -15,10 +17,8 @@ export class Session {
   bpm = 136;
   rnd = 60;            // % of lanes that get a random rhythm instead of a world rhythm
   micro = true;        // microtonal scales allowed
-  kickOn = true;       // kick not muted
-  kickSolo = false;
   harmony = [];        // one chord per bar
-  tracks = [];         // one per ROLE
+  tracks = [];         // one per LANES: melody lanes, then drum lanes
 
   get stepDuration() { return 60 / this.bpm / 4; }
 
@@ -33,18 +33,14 @@ export class Session {
   }
   regenerate() {
     this.harmony = makeHarmony(this.ctx, barsOf(this.steps));
-    const used = new Set();
-    for (let k = 0; k < ROLE.length; k++) this.#genTrack(k, used);
+    const used = new Set(), drumUsed = new Set();   // melody and drum lanes each avoid repeating a world rhythm
+    for (let k = 0; k < LANES.length; k++) this.#genTrack(k, isDrum(k) ? drumUsed : used);
   }
   // generate the lanes that are missing (a save from before a lane was added)
   fillMissingTracks() {
-    const used = new Set(this.tracks.filter(t => t && t.src.kind === "world").map(t => t.src.name));
-    for (let k = 0; k < ROLE.length; k++) if (!this.tracks[k]) this.#genTrack(k, used);
+    for (let k = 0; k < LANES.length; k++) if (!this.tracks[k]) this.#genTrack(k, this.#worldUsed(k));
   }
-  rerollTrack(k) {
-    const used = new Set(this.tracks.filter((t, i) => i !== k && t.src.kind === "world").map(t => t.src.name));
-    this.#genTrack(k, used);
-  }
+  rerollTrack(k) { this.#genTrack(k, this.#worldUsed(k)); }
 
   /* ----------------------------- lengths ---------------------------- */
   // New pattern length: new chords for the new number of bars, lanes that matched the old length
@@ -55,7 +51,7 @@ export class Session {
     this.steps = M;
     this.tracks.forEach(tr => { if (tr.len === follow) tr.len = Math.min(M, MAXL); });
     this.harmony = makeHarmony(this.ctx, barsOf(M));
-    for (let k = 0; k < ROLE.length; k++) genNotes(k, this.tracks[k], this.ctx, this.harmony, this.refs(), this.steps);
+    for (let k = 0; k < FIRST_DRUM; k++) genNotes(k, this.tracks[k], this.ctx, this.harmony, this.refs(), this.steps);
     return true;
   }
   // Lane length: shorter hides steps without deleting them; longer brings back the hidden steps,
@@ -67,7 +63,7 @@ export class Session {
     tr.len = n;
     const fresh = [];
     for (let i = old; i < n; i++) if (tr.gates[i] && !tr.notes[i]) { this.#pickNoteAt(k, i); fresh.push(i); }
-    fresh.forEach(i => { tr.dur[i] = genDur(ROLE[k], i, gapIn(tr, i)); });
+    fresh.forEach(i => { tr.dur[i] = genDur(LANES[k], i, gapIn(tr, i)); });
     return true;
   }
 
@@ -105,27 +101,23 @@ export class Session {
     tr.gate = roundGate(v);
     tr.gateSet = true;
   }
-  // k = -1 is the kick. Returns whether the lane is now muted.
+  // Returns whether the lane is now muted.
   toggleMute(k) {
-    if (k < 0) { this.kickOn = !this.kickOn; return !this.kickOn; }
     const tr = this.tracks[k];
     tr.muted = !tr.muted;
     return tr.muted;
   }
-  // k = -1 is the kick. Returns whether the lane is now soloed.
+  // Returns whether the lane is now soloed.
   toggleSolo(k) {
-    if (k < 0) { this.kickSolo = !this.kickSolo; return this.kickSolo; }
     const tr = this.tracks[k];
     tr.solo = !tr.solo;
     return tr.solo;
   }
-  get anySolo() { return this.kickSolo || this.tracks.some(t => t.solo); }
-  // Whether lane k (-1 = kick) is heard: not muted, and soloed whenever any lane is. Mute wins.
+  get anySolo() { return this.tracks.some(t => t.solo); }
+  // Whether lane k is heard: not muted, and soloed whenever any lane is. Mute wins.
   isAudible(k) {
-    const solo = this.anySolo;
-    if (k < 0) return this.kickOn && (!solo || this.kickSolo);
     const tr = this.tracks[k];
-    return !tr.muted && (!solo || !!tr.solo);
+    return !tr.muted && (!this.anySolo || !!tr.solo);
   }
 
   /* ----------------------------- private ---------------------------- */
@@ -135,22 +127,38 @@ export class Session {
     do { s = pick(list); } while (list.length > 1 && this.ctx && s.key === this.ctx.scale.key);
     return s;
   }
-  // A lane keeps its length and, once you have set it, its gate across rerolls.
+  // world rhythms the other lanes of the same kind (melody or drum) already use
+  #worldUsed(k) {
+    return new Set(this.tracks.filter((t, i) => t && i !== k && isDrum(i) === isDrum(k) && t.src.kind === "world").map(t => t.src.name));
+  }
+  // A lane keeps its length, its mute and solo, and once you have set it, its gate across rerolls.
+  // Drum lanes only get a new rhythm: every hit is the same note.
   #genTrack(k, used) {
-    const R = ROLE[k], old = this.tracks[k];
+    const R = LANES[k], old = this.tracks[k];
     const len = old ? old.len : Math.min(this.steps, MAXL);
-    const r = makeRhythm(len, this.rnd / 100, used);
+    const r = isDrum(k) ? makeDrumRhythm(R, len, this.rnd / 100, used) : makeRhythm(len, this.rnd / 100, used);
     const tr = {
       len, gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false, solo: old ? !!old.solo : false,
       gate: old && old.gateSet ? old.gate : randGate(R), gateSet: !!(old && old.gateSet),
       notes: Array(MAXL).fill(null), vel: Array(MAXL).fill(0), dur: Array(MAXL).fill(1),
     };
     this.tracks[k] = tr;
-    genNotes(k, tr, this.ctx, this.harmony, this.refs(), this.steps);
+    if (isDrum(k)) this.#drumHits(k, tr);
+    else genNotes(k, tr, this.ctx, this.harmony, this.refs(), this.steps);
     return tr;
   }
+  #drumHits(k, tr) {
+    const D = LANES[k];
+    for (let i = 0; i < MAXL; i++) {
+      tr.notes[i] = i < tr.len && tr.gates[i] ? drumNote() : null;
+      if (tr.notes[i]) tr.vel[i] = drumVel(D, i);
+    }
+    for (let i = 0; i < tr.len; i++) if (tr.notes[i]) tr.dur[i] = genDur(D, i, gapIn(tr, i));
+  }
   #pickNoteAt(k, i) {
-    const tr = this.tracks[k], R = ROLE[k], L = tr.len, pool = poolFor(this.ctx, R.lo, R.hi);
+    const tr = this.tracks[k];
+    if (isDrum(k)) { tr.notes[i] = drumNote(); tr.vel[i] = drumVel(LANES[k], i); return; }
+    const R = ROLE[k], L = tr.len, pool = poolFor(this.ctx, R.lo, R.hi);
     let prev = null, next = null;
     for (let d = 1; d < L && !prev; d++) { const j = (i - d + L) % L; if (isNote(tr, j)) prev = tr.notes[j]; }
     for (let d = 1; d < L && !next; d++) { const j = (i + d) % L; if (isNote(tr, j)) next = tr.notes[j]; }

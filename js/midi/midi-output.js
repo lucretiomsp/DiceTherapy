@@ -3,11 +3,14 @@ import { loadPref, savePref } from "../core/storage.js";
 import { clamp } from "../core/util.js";
 import { LOOKAHEAD } from "../audio/timing.js";
 
-// Each synth lane goes out on its own MIDI channel (MIDI_CH). Each lane is monophonic on its own
-// channel, so microtones (24-TET, Partch JI) ride on a per-note pitch bend.
+// Every lane goes out on its own MIDI channel (MIDI_CH). Each lane is monophonic on its own
+// channel, so microtones (24-TET, Partch JI) ride on a per-note pitch bend; drum lanes always
+// send C3 (MIDI 48), so each drum needs its own channel too.
 // MIDI clock (24 ppqn, Start, Stop) has its own port, which can also be the notes port.
-// 0-based, one per ROLE: ch 1, 2, 3, 5, 6, 7, 8, 9. Ch 4 is left free, ch 10 is kept for drums.
-export const MIDI_CH = [0, 1, 2, 4, 5, 6, 7, 8];
+// One per LANES entry, 0-based: the track number is the MIDI channel.
+//   melody  Saw 1, Square 2, Tri 3, Bell 4, Acid 5, Pluck 6, Pad 7, Organ 8
+//   drums   Kick 9, Snare 10, Tom 11, Rim 12, Clap 13, Closed Hats 14, Open Hats 15, Rides 16
+export const MIDI_CH = Array.from({ length: 16 }, (_, k) => k);
 const BEND_RANGE = 2;                            // semitones, also sent to the synth as RPN 0
 const MIDI_KEY = "diceTherapy.midiOut";          // last port used
 const CLOCK_KEY = "diceTherapy.clockOut";        // last clock port used

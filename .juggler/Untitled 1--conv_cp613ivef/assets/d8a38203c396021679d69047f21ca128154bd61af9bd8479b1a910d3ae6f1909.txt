@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f0a3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Dice Therapy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231f0a3a'/%3E%3Cpath d='M8 8h14v14H8zM25 25h14v14H25zM42 42h14v14H42z' fill='%234fe58c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/hero.css">
+<link rel="stylesheet" href="css/controls.css">
+<link rel="stylesheet" href="css/transport.css">
+<link rel="stylesheet" href="css/sequencer.css">
+<link rel="stylesheet" href="css/footer.css">
+<link rel="stylesheet" href="css/overlays.css">
+<link rel="stylesheet" href="css/responsive.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Dice Therapy</div>
+    <div class="topmeta" id="meta">SC scales · Coypu rhythms</div>
+  </header>
+
+  <div class="side">
+    <section class="panel hero" aria-live="polite" aria-label="Current scale">
+      <button type="button" class="die" id="die" aria-label="Roll the dice: new scale, root and patterns"></button>
+      <div>
+        <div class="root" id="root">C</div>
+        <h1 class="sname" id="sname">Scale</h1>
+        <div class="sc" id="sccode"></div>
+      </div>
+      <div class="tones" id="tones"></div>
+      <dl class="facts">
+        <div><dt>Tuning</dt><dd id="tuning"></dd></div>
+        <div><dt>Harmony</dt><dd id="harmony"></dd></div>
+      </dl>
+    </section>
+
+    <section class="panel controls" aria-label="Pattern settings">
+      <div class="row">
+        <span class="lbl big" id="stepsLbl">Pattern len</span>
+        <div class="seg" role="radiogroup" aria-labelledby="stepsLbl">
+          <button type="button" role="radio" id="s16" data-steps="16" aria-checked="true">16</button>
+          <button type="button" role="radio" id="s32" data-steps="32" aria-checked="false">32</button>
+          <button type="button" role="radio" id="s64" data-steps="64" aria-checked="false">64</button>
+          <button type="button" role="radio" id="s128" data-steps="128" aria-checked="false">128</button>
+        </div>
+        <span class="grow"></span>
+        <button type="button" class="btn" id="copy">Copy as Coypu</button>
+      </div>
+      <label class="slider" for="bpm">
+        <span class="head"><span class="lbl">Tempo</span><output id="bpmOut" for="bpm">124 BPM</output></span>
+        <input type="range" id="bpm" min="70" max="170" step="1" value="124">
+      </label>
+      <label class="slider" for="rnd">
+        <span class="head"><span class="lbl">Rhythm source</span><output id="rndOut" for="rnd">60% random · 40% world</output></span>
+        <input type="range" id="rnd" min="0" max="100" step="5" value="60">
+      </label>
+      <label class="toggle" for="micro">
+        <input type="checkbox" id="micro" checked>
+        <span>Microtonal scales <small>24-TET maqams, Partch JI</small></span>
+      </label>
+      <div class="row port">
+        <label class="lbl" for="midiOut">MIDI out</label>
+        <select class="sel" id="midiOut"><option value="">Off</option></select>
+      </div>
+      <label class="toggle big" for="local" id="localRow" hidden>
+        <input type="checkbox" id="local">
+        <span>Mute local synths <small>MIDI only</small></span>
+      </label>
+      <div class="row port">
+        <label class="lbl" for="clockOut">Clock out</label>
+        <select class="sel" id="clockOut"><option value="">Off</option></select>
+      </div>
+    </section>
+
+    <nav class="transport" aria-label="Transport">
+      <button type="button" class="tb mini" id="die2" aria-label="Roll the dice"></button>
+      <button type="button" class="tb play" id="play" aria-pressed="false"></button>
+      <button type="button" class="tb" id="regen" aria-label="Regenerate rhythms and notes, keep the scale"></button>
+    </nav>
+    <p class="keys">Keys: Space play/stop · D roll · R regenerate</p>
+  </div>
+
+  <main class="main">
+    <section class="panel seq" id="lanes" aria-label="Melody lanes"></section>
+    <section class="panel seq drums" aria-labelledby="drumsTitle">
+      <h2 class="pane-title" id="drumsTitle">Drums <small>every hit is C3 · the dice change only the rhythm</small></h2>
+      <div id="drumLanes"></div>
+    </section>
+    <footer class="foot">
+      <p><b>Notes.</b> Each note is weighted by its consonance with the chord, the strength of its step (root, third and fifth on the beat), stepwise voice leading and its interval against the bass. Every bar of the pattern gets a chord; 64 and 128 steps repeat a 4-bar progression.</p>
+      <p><b>Lengths.</b> The pattern (16 to 128 steps) restarts every lane when it ends. Each lane loops on its own length, 3 to 64 steps, so lanes can drift against each other; a note that repeats over several chords is chosen to fit all of them. Lanes that match the pattern length follow it when you change it.</p>
+      <p><b>Durations.</b> Each note lasts a number of steps, at most until the next note of its lane, so lanes stay monophonic. Tap a step to switch it. Drag a note to the right to hold it longer, drag back to shorten it, or use Shift + arrow keys. Tap a held step to start a new note there. Shift − and + move a lane's whole pattern one step left or right inside its loop. Gate is the share of the length that sounds. Both export to Coypu as <code>durations:</code> and <code>gateTimes:</code>.</p>
+      <p><b>Notation.</b> C4 = MIDI 60. ↑ ↓ raise or lower a quarter tone. Partch notes show cents from 12-TET.</p>
+      <p><b>MIDI.</b> Every lane goes out on the channel of its own number: melodies on 1 to 8, drums on 9 to 16, each drum always as C3 (MIDI 48). Muted lanes, and lanes left out by a solo (S), send nothing. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Clock out sends MIDI clock (24 ppqn) with Start and Stop, to its own port or to the notes port: the other device starts with step 1, or on the next bar line if you pick it while playing, and stops when the audio does. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
+      <p><b>Sources.</b> Scales: SuperCollider <code>Scale.directory</code>. Rhythms: the world rhythms of Coypu, random ones follow <code>randomTrigsWithProbability:</code>.</p>
+    </footer>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="mbox">
+    <h2 id="mtitle">Coypu code</h2>
+    <textarea id="mtext" readonly spellcheck="false"></textarea>
+    <div class="row">
+      <button type="button" class="btn" id="msel">Select all</button>
+      <button type="button" class="btn" id="mclose">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
