@@ -8,3 +8,5 @@ code{font:inherit}
 [hidden]{display:none!important}
 /* one label style: small grotesque caps, wide tracking */
 .lbl,.facts dt,.cap,.keys,.topmeta{font:semi-condensed 600 10px/1.2 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+/* a label that has to be read at a glance */
+.lbl.big{font:condensed 800 20px/1 var(--sans);letter-spacing:.06em;color:var(--print)}

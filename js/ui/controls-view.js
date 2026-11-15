@@ -11,7 +11,7 @@ export class ControlsView {
   constructor(session) {
     this.session = session;
     this.regenBtn = $("#regen");
-    this.regenBtn.innerHTML = `${ICON.reroll}<span>Regenerate</span>`;
+    this.regenBtn.innerHTML = `${ICON.dice}<span>Regenerate</span>`;
   }
 
   bind(actions) {

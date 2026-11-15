@@ -20,7 +20,7 @@ function srcHTML(tr) {
 function laneHeadHTML(k) {
   if (k < 0) return `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`;
   const nm = ROLE[k].name;
-  return `<span class="num">${k + 1}</span><span class="lname">${nm}<small>${RANGE_TXT[k]} · ch ${MIDI_CH[k] + 1}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.reroll}</button>` +
+  return `<span class="num">${k + 1}</span><span class="lname">${nm}<span class="ch">CH ${MIDI_CH[k] + 1}</span><small>${RANGE_TXT[k]}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.dice}</button>` +
     `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select></span>` +
     `<span class="grp"><span class="lbl">Shift</span><span class="stepper"><button type="button" class="ib sm" data-shift="-1" aria-label="${nm}: shift the pattern one step left">−</button>` +
     `<button type="button" class="ib sm" data-shift="1" aria-label="${nm}: shift the pattern one step right">+</button></span></span>` +

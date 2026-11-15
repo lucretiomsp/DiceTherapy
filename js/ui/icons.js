@@ -1,7 +1,8 @@
 export const ICON = {
   play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16l14-8z" fill="currentColor"/></svg>',
   stop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" fill="currentColor"/></svg>',
-  reroll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 11V6h14"/><path d="M15 3l3 3-3 3"/><path d="M20 13v5H6"/><path d="M9 15l-3 3 3 3"/></svg>',
+  // a die face (five) with the pips cut out: the key for every regenerate / reroll
+  dice: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M2 2h20v20H2z M5.5 5.5h3.5v3.5H5.5z M15 5.5h3.5v3.5H15z M10.25 10.25h3.5v3.5h-3.5z M5.5 15h3.5v3.5H5.5z M15 15h3.5v3.5H15z"/></svg>',
 };
 
 // a plain square face with square pips

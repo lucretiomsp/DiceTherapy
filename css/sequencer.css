@@ -22,12 +22,15 @@
 .lctl .sel.gate{width:72px}
 .num{width:28px;height:28px;background:var(--c);color:var(--ground);display:grid;place-items:center;font:condensed 800 16px/1 var(--sans)}
 .lname{font:condensed 800 22px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--c)}
+/* the MIDI channel: a badge in the lane colour, big enough to read across the room */
+.lname .ch{display:inline-block;margin-left:10px;padding:3px 6px 2px;border:2px solid var(--c);font:condensed 800 20px/1 var(--sans);letter-spacing:.06em;vertical-align:2px}
 .lname small{display:inline-block;margin-left:10px;font:400 11px/1 var(--mono);letter-spacing:0;text-transform:none;color:var(--soft)}
 .src{font:400 11.5px/1.45 var(--mono);overflow-wrap:anywhere}
 .src i{font-style:normal;color:var(--soft)}
 .tag{display:inline-block;margin-right:8px;padding:3px 5px 2px;background:var(--c);color:var(--ground);font:semi-condensed 700 9px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;vertical-align:1px}
 .ib{width:40px;height:40px;border:0;background:var(--deep);display:grid;place-items:center;font:condensed 800 16px/1 var(--sans)}
 .ib svg{width:18px;height:18px}
+.ib.reroll svg{width:24px;height:24px}
 .ib[aria-pressed="true"]{background:var(--print);color:var(--ground)}
 .grid{display:grid;gap:12px}
 .bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}

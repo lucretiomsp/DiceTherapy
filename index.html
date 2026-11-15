@@ -47,7 +47,7 @@
 
     <section class="panel controls" aria-label="Pattern settings">
       <div class="row">
-        <span class="lbl" id="stepsLbl">Pattern</span>
+        <span class="lbl big" id="stepsLbl">Pattern len</span>
         <div class="seg" role="radiogroup" aria-labelledby="stepsLbl">
           <button type="button" role="radio" id="s16" data-steps="16" aria-checked="true">16</button>
           <button type="button" role="radio" id="s32" data-steps="32" aria-checked="false">32</button>
@@ -73,9 +73,9 @@
         <label class="lbl" for="midiOut">MIDI out</label>
         <select class="sel" id="midiOut"><option value="">Off</option></select>
       </div>
-      <label class="toggle" for="local" id="localRow" hidden>
-        <input type="checkbox" id="local" checked>
-        <span>Local synths <small>untick for MIDI only</small></span>
+      <label class="toggle big" for="local" id="localRow" hidden>
+        <input type="checkbox" id="local">
+        <span>Mute local synths <small>MIDI only</small></span>
       </label>
       <div class="row port">
         <label class="lbl" for="clockOut">Clock out</label>

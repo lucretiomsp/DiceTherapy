@@ -22,7 +22,7 @@ export class MidiPanel {
         if (i) midi.setClock(port, true); else midi.setOut(port, true);
       });
     });
-    this.local.addEventListener("change", e => midi.setLocal(e.target.checked));
+    this.local.addEventListener("change", e => midi.setLocal(!e.target.checked));   // the box reads "Mute local synths"
     this.render();
   }
 
@@ -42,7 +42,7 @@ export class MidiPanel {
       }
       sel.value = port ? port.id : "";
     }
-    this.local.checked = midi.local;
+    this.local.checked = !midi.local;
     this.localRow.hidden = !midi.out;
   }
 }
