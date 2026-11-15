@@ -1,0 +1,132 @@
+import { clamp, pick, wpick } from "../core/util.js";
+import { SCALES } from "../data/scales.js";
+import { buildCtx } from "../theory/scale-context.js";
+import { makeHarmony } from "../theory/chords.js";
+import { genNotes, noteWeights, poolFor, voiceRefs } from "./melody.js";
+import { makeRhythm } from "./rhythm.js";
+import { BEAT, ROLE, genDur, randGate, roundGate } from "./roles.js";
+import { MASTERS, MAXL, MINL, barsOf, effDur, gapIn, isNote, occ } from "./timeline.js";
+
+// The model: everything the dice decided and everything the user edited. No DOM, no audio.
+// Methods that change the pattern return false when nothing changed, so the caller can skip a redraw.
+export class Session {
+  ctx = null;          // scale context, see buildCtx
+  steps = 16;          // pattern length, one of MASTERS
+  bpm = 136;
+  rnd = 60;            // % of lanes that get a random rhythm instead of a world rhythm
+  micro = true;        // microtonal scales allowed
+  kickOn = true;
+  harmony = [];        // one chord per bar
+  tracks = [];         // one per ROLE
+
+  get stepDuration() { return 60 / this.bpm / 4; }
+
+  availableScales() { return SCALES.filter(s => this.micro || s.ppo === 12); }
+
+  refs() { return voiceRefs(this.tracks, this.steps); }
+
+  /* ------------------------------ dice ------------------------------ */
+  roll() {
+    this.ctx = buildCtx(this.#pickScale(), Math.floor(Math.random() * 12));
+    this.regenerate();
+  }
+  regenerate() {
+    this.harmony = makeHarmony(this.ctx, barsOf(this.steps));
+    const used = new Set();
+    for (let k = 0; k < ROLE.length; k++) this.#genTrack(k, used);
+  }
+  // generate the lanes that are missing (a save from before a lane was added)
+  fillMissingTracks() {
+    const used = new Set(this.tracks.filter(t => t && t.src.kind === "world").map(t => t.src.name));
+    for (let k = 0; k < ROLE.length; k++) if (!this.tracks[k]) this.#genTrack(k, used);
+  }
+  rerollTrack(k) {
+    const used = new Set(this.tracks.filter((t, i) => i !== k && t.src.kind === "world").map(t => t.src.name));
+    this.#genTrack(k, used);
+  }
+
+  /* ----------------------------- lengths ---------------------------- */
+  // New pattern length: new chords for the new number of bars, lanes that matched the old length
+  // follow it, rhythms stay, notes and durations are picked again for the new chords.
+  setMaster(M) {
+    if (!MASTERS.includes(M) || M === this.steps) return false;
+    const follow = Math.min(this.steps, MAXL);
+    this.steps = M;
+    this.tracks.forEach(tr => { if (tr.len === follow) tr.len = Math.min(M, MAXL); });
+    this.harmony = makeHarmony(this.ctx, barsOf(M));
+    for (let k = 0; k < ROLE.length; k++) genNotes(k, this.tracks[k], this.ctx, this.harmony, this.refs(), this.steps);
+    return true;
+  }
+  // Lane length: shorter hides steps without deleting them; longer brings back the hidden steps,
+  // or continues the rhythm with new notes where there were none.
+  setTrackLen(k, n) {
+    const tr = this.tracks[k], old = tr.len;
+    n = clamp(Math.round(n) || old, MINL, MAXL);
+    if (n === old) return false;
+    tr.len = n;
+    const fresh = [];
+    for (let i = old; i < n; i++) if (tr.gates[i] && !tr.notes[i]) { this.#pickNoteAt(k, i); fresh.push(i); }
+    fresh.forEach(i => { tr.dur[i] = genDur(ROLE[k], i, gapIn(tr, i)); });
+    return true;
+  }
+
+  /* ------------------------------ edits ----------------------------- */
+  // A tap on a note removes it; on an empty or held step it starts a one-step note there.
+  toggleStep(k, i) {
+    const tr = this.tracks[k];
+    if (isNote(tr, i)) { tr.gates[i] = 0; tr.notes[i] = null; }
+    else { tr.gates[i] = 1; this.#pickNoteAt(k, i); tr.dur[i] = 1; }
+    tr.edited = true;
+  }
+  setDur(k, i, d) {
+    const tr = this.tracks[k];
+    if (!isNote(tr, i)) return false;
+    const v = clamp(Math.round(d), 1, gapIn(tr, i));
+    if (v === effDur(tr, i) && v === tr.dur[i]) return false;
+    tr.dur[i] = v;
+    return true;
+  }
+  setGate(k, v) {
+    const tr = this.tracks[k];
+    tr.gate = roundGate(v);
+    tr.gateSet = true;
+  }
+  // k = -1 is the kick. Returns whether the lane is now muted.
+  toggleMute(k) {
+    if (k < 0) { this.kickOn = !this.kickOn; return !this.kickOn; }
+    const tr = this.tracks[k];
+    tr.muted = !tr.muted;
+    return tr.muted;
+  }
+
+  /* ----------------------------- private ---------------------------- */
+  #pickScale() {
+    const list = this.availableScales();
+    let s;
+    do { s = pick(list); } while (list.length > 1 && this.ctx && s.key === this.ctx.scale.key);
+    return s;
+  }
+  // A lane keeps its length and, once you have set it, its gate across rerolls.
+  #genTrack(k, used) {
+    const R = ROLE[k], old = this.tracks[k];
+    const len = old ? old.len : Math.min(this.steps, MAXL);
+    const r = makeRhythm(len, this.rnd / 100, used);
+    const tr = {
+      len, gates: r.gates, src: r.src, edited: false, muted: old ? old.muted : false,
+      gate: old && old.gateSet ? old.gate : randGate(R), gateSet: !!(old && old.gateSet),
+      notes: Array(MAXL).fill(null), vel: Array(MAXL).fill(0), dur: Array(MAXL).fill(1),
+    };
+    this.tracks[k] = tr;
+    genNotes(k, tr, this.ctx, this.harmony, this.refs(), this.steps);
+    return tr;
+  }
+  #pickNoteAt(k, i) {
+    const tr = this.tracks[k], R = ROLE[k], L = tr.len, pool = poolFor(this.ctx, R.lo, R.hi);
+    let prev = null, next = null;
+    for (let d = 1; d < L && !prev; d++) { const j = (i - d + L) % L; if (isNote(tr, j)) prev = tr.notes[j]; }
+    for (let d = 1; d < L && !next; d++) { const j = (i + d) % L; if (isNote(tr, j)) next = tr.notes[j]; }
+    const ws = noteWeights(k, pool, { occ: occ(i, L, this.steps), prev, lastLeap: 0, next, isFirst: !prev, refs: this.refs() }, this.harmony, this.ctx);
+    tr.notes[i] = wpick(pool, ws.map(w => Math.pow(w, R.tau)));
+    tr.vel[i] = clamp(.7 + .3 * BEAT[i % 16], .45, 1);
+  }
+}

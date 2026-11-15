@@ -6,8 +6,8 @@ import { noteName } from "../theory/spelling.js";
 import { $ } from "./dom.js";
 import { ICON } from "./icons.js";
 
-const COLORS = ["var(--saw)", "var(--sqr)", "var(--tri)"];
-const RANGE_TXT = ["bass · MIDI 24-48", "mid · MIDI 48-70", "lead · MIDI 62-86"];
+const COLORS = ["var(--saw)", "var(--sqr)", "var(--tri)", "var(--bell)"];
+const RANGE_TXT = ["bass · MIDI 24-48", "mid · MIDI 48-70", "lead · MIDI 62-86", "bell · MIDI 72-96"];
 const LEN_OPTS = Array.from({ length: MAXL - MINL + 1 }, (_, i) => `<option value="${i + MINL}">${i + MINL}</option>`).join("");
 const GATE_OPTS = Array.from({ length: 16 }, (_, i) => { const v = 25 + i * 5; return `<option value="${v / 100}">${v}%</option>`; }).join("");
 
@@ -21,8 +21,9 @@ function laneHeadHTML(k) {
   if (k < 0) return `<span class="num">K</span><span class="lname">Kick<small>4/4 · sine</small></span><button type="button" class="ib mute" aria-label="Mute kick">M</button><code class="src"></code>`;
   const nm = ROLE[k].name;
   return `<span class="num">${k + 1}</span><span class="lname">${nm}<small>${RANGE_TXT[k]} · ch ${MIDI_CH[k] + 1}</small></span><button type="button" class="ib mute" aria-label="Mute ${nm}">M</button><button type="button" class="ib reroll" aria-label="Reroll the ${nm} track">${ICON.reroll}</button>` +
-    `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><span class="stepper"><button type="button" class="ib sm" data-len="-1" aria-label="${nm}: one step shorter">−</button>` +
-    `<select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select><button type="button" class="ib sm" data-len="1" aria-label="${nm}: one step longer">+</button></span></span>` +
+    `<div class="lctl"><span class="grp"><span class="lbl">Steps</span><select class="sel len" aria-label="${nm} length in steps">${LEN_OPTS}</select></span>` +
+    `<span class="grp"><span class="lbl">Shift</span><span class="stepper"><button type="button" class="ib sm" data-shift="-1" aria-label="${nm}: shift the pattern one step left">−</button>` +
+    `<button type="button" class="ib sm" data-shift="1" aria-label="${nm}: shift the pattern one step right">+</button></span></span>` +
     `<span class="grp g"><span class="lbl">Gate</span><select class="sel gate" aria-label="${nm} gate time">${GATE_OPTS}</select></span></div><code class="src"></code>`;
 }
 
@@ -139,8 +140,6 @@ export class LanesView {
     lane.querySelector(".src").innerHTML = srcHTML(tr);
     lane.querySelector(".sel.len").value = String(tr.len);
     lane.querySelector(".sel.gate").value = String(tr.gate);
-    lane.querySelector('[data-len="-1"]').disabled = tr.len <= MINL;
-    lane.querySelector('[data-len="1"]').disabled = tr.len >= MAXL;
   }
 
   // g: pattern step, -1 clears. The kick lane shows g, each synth lane its own step g % len.

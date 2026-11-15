@@ -46,7 +46,7 @@ export function noteWeights(k, pool, o, harmony, ctx) {
     const chord = chordAt(harmony, g), s = BEAT[g % 16];
     let e = R.role === "bass" ? .8 + 2.4 * s : .5 + 1.8 * s;
     if (o.isFirst) e = Math.max(e, R.role === "bass" ? 2.6 : 1.6);
-    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, bass: o.refs.bassAt[g] ?? null, mid: o.refs.midAt[g] ?? null };
+    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, bass: o.refs.bassAt[g] ?? null, mid: o.refs.midAt[g] ?? null, lead: o.refs.leadAt[g] ?? null };
   });
   const chord0 = chordAt(harmony, o.occ[0]);
   let center = R.center;
@@ -66,6 +66,13 @@ export function noteWeights(k, pool, o, harmony, ctx) {
         v *= Math.pow(cons(p.m - q.mid), 1.1);
         if (near(p.m, q.mid)) v *= .25;
       }
+      if (R.role === "bell") {                       // above the lead: fit it, never double it
+        if (q.mid != null) v *= Math.pow(cons(p.m - q.mid), .8);
+        if (q.lead != null) {
+          v *= Math.pow(cons(p.m - q.lead), 1.1);
+          if (near(p.m, q.lead)) v *= .25;
+        }
+      }
       lw += Math.log(v + 1e-12);
     }
     let w = Math.exp(lw / per.length);
@@ -78,11 +85,12 @@ export function noteWeights(k, pool, o, harmony, ctx) {
     return w * Math.exp(-z * z);
   });
 }
-// What the bass and mid play at each pattern position, following each lane's own loop.
+// What the bass, mid and lead play at each pattern position, following each lane's own loop.
+// The bass is held between notes; mid and lead count only where a note starts.
 // Positions past the pattern end are filled too, for lane steps the pattern never reaches.
 export function voiceRefs(tracks, steps) {
   const G = Math.max(steps, MAXL), T = tracks;
-  const bassAt = Array(G).fill(null), midAt = Array(G).fill(null);
+  const bassAt = Array(G).fill(null), midAt = Array(G).fill(null), leadAt = Array(G).fill(null);
   const b = T[0];
   if (b && b.notes) {
     const L = b.len, held = Array(L).fill(null);
@@ -91,9 +99,10 @@ export function voiceRefs(tracks, steps) {
     for (let i = 0; i < L; i++) { if (isNote(b, i)) last = b.notes[i].m; held[i] = last; }
     for (let g = 0; g < G; g++) bassAt[g] = held[g % L];
   }
-  const md = T[1];
-  if (md && md.notes) for (let g = 0; g < G; g++) { const i = g % md.len; if (isNote(md, i)) midAt[g] = md.notes[i].m; }
-  return { bassAt, midAt };
+  const onsets = (tr, at) => { if (tr && tr.notes) for (let g = 0; g < G; g++) { const i = g % tr.len; if (isNote(tr, i)) at[g] = tr.notes[i].m; } };
+  onsets(T[1], midAt);
+  onsets(T[2], leadAt);
+  return { bassAt, midAt, leadAt };
 }
 // Notes, velocities and durations for steps 0..len-1 of lane k in an M-step pattern; steps past
 // its length are cleared and get notes when the lane grows over them.

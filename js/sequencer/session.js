@@ -35,6 +35,11 @@ export class Session {
     const used = new Set();
     for (let k = 0; k < ROLE.length; k++) this.#genTrack(k, used);
   }
+  // generate the lanes that are missing (a save from before a lane was added)
+  fillMissingTracks() {
+    const used = new Set(this.tracks.filter(t => t && t.src.kind === "world").map(t => t.src.name));
+    for (let k = 0; k < ROLE.length; k++) if (!this.tracks[k]) this.#genTrack(k, used);
+  }
   rerollTrack(k) {
     const used = new Set(this.tracks.filter((t, i) => i !== k && t.src.kind === "world").map(t => t.src.name));
     this.#genTrack(k, used);
@@ -79,6 +84,19 @@ export class Session {
     const v = clamp(Math.round(d), 1, gapIn(tr, i));
     if (v === effDur(tr, i) && v === tr.dur[i]) return false;
     tr.dur[i] = v;
+    return true;
+  }
+  // Shift lane k's pattern by d steps inside its own loop: + to the right (later), − to the left.
+  // Notes travel with their velocity and length; steps past the lane length stay where they are.
+  rotateTrack(k, d) {
+    const tr = this.tracks[k], L = tr.len;
+    d = ((Math.round(d) % L) + L) % L;
+    if (!d) return false;
+    for (const key of ["gates", "notes", "vel", "dur"]) {
+      const a = tr[key], head = a.slice(0, L);
+      for (let i = 0; i < L; i++) a[(i + d) % L] = head[i];
+    }
+    tr.edited = true;
     return true;
   }
   setGate(k, v) {

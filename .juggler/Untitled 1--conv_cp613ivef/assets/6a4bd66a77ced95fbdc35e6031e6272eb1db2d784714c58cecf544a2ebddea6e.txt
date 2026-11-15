@@ -1,0 +1,138 @@
+import { clamp, near, rand, wpick } from "../core/util.js";
+import { cons } from "../theory/consonance.js";
+import { BEAT, ROLE, genDur } from "./roles.js";
+import { MAXL, chordAt, gapIn, isNote, occ } from "./timeline.js";
+
+// The pitches of the scale context inside [lo, hi], sorted: [{m, d}] with d the scale degree
+export function poolFor(ctx, lo, hi) {
+  const out = [];
+  for (let o = 0; o <= 10; o++) for (const d of ctx.degs) {
+    const m = 12 * o + ctx.rootPc + d.s;
+    if (m >= lo - 1e-6 && m <= hi + 1e-6) out.push({ m, d });
+  }
+  return out.sort((a, b) => a.m - b.m);
+}
+// Scale steps between two pitches, honouring ascending/descending forms
+function stepsBetween(pool, a, b) {
+  if (near(a, b)) return 0;
+  const lo = Math.min(a, b), hi = Math.max(a, b), up = b > a;
+  let n = 1;
+  for (const q of pool) if (q.m > lo + 1e-6 && q.m < hi - 1e-6 && (up ? q.d.asc : q.d.desc)) n++;
+  return n;
+}
+function melodic(p, prev, role, lastLeap, pool) {
+  const L = p.m - prev.m, A = Math.abs(L), n = stepsBetween(pool, prev.m, p.m);
+  if (role === "bass") {
+    if (n === 0) return 1;
+    if (Math.abs(A - 12) < .3) return .9;
+    if (Math.abs(A - 7) < .3 || Math.abs(A - 5) < .3) return .75;
+    if (n === 1) return .6;
+    return .5 * Math.exp(-A / 7);
+  }
+  let w = n === 0 ? (role === "mid" ? .6 : .42) : n === 1 ? 1 : n === 2 ? .75 : n === 3 ? .5 : .36 * Math.exp(-(n - 4) / 2.2);
+  if (Math.abs(A - 12) < .3) w = Math.max(w, .3);
+  if (Math.abs(lastLeap) > 4.5 && n > 0) {          // leap recovery
+    if (Math.sign(L) === -Math.sign(lastLeap)) { if (n <= 2) w *= 1.6; }
+    else w *= .55;
+  }
+  return w;
+}
+// o.occ: the pattern positions where this step is heard. With lanes shorter than the pattern a
+// step comes back over several chords, so the vertical fit (chord, metric strength, bass, mid)
+// is a geometric mean over all of them: one bad clash pulls a note down.
+export function noteWeights(k, pool, o, harmony, ctx) {
+  const R = ROLE[k];
+  const per = o.occ.map(g => {
+    const chord = chordAt(harmony, g), s = BEAT[g % 16];
+    let e = R.role === "bass" ? .8 + 2.4 * s : .5 + 1.8 * s;
+    if (o.isFirst) e = Math.max(e, R.role === "bass" ? 2.6 : 1.6);
+    return { root: ctx.rootPc + chord.r, tones: chord.tones, e, bass: o.refs.bassAt[g] ?? null, mid: o.refs.midAt[g] ?? null, lead: o.refs.leadAt[g] ?? null };
+  });
+  const chord0 = chordAt(harmony, o.occ[0]);
+  let center = R.center;
+  if (R.role === "bass") { const low = pool.find(p => p.d.ai === chord0.j); center = (low ? low.m : R.lo + 5) + 5; }
+  return pool.map(p => {
+    if (o.prev) {
+      const L = p.m - o.prev.m;
+      if ((L > 1e-6 && !p.d.asc) || (L < -1e-6 && !p.d.desc)) return 0;
+    } else if (!p.d.asc) return 0;
+    let lw = 0;
+    for (const q of per) {
+      let h = cons(p.m - q.root);
+      if (q.tones.has(p.d.ai)) h += (1 - h) * .45;
+      let v = Math.pow(h, q.e);
+      if (R.role !== "bass" && q.bass != null) v *= Math.pow(cons(p.m - q.bass), 1.3);
+      if (R.role === "lead" && q.mid != null) {
+        v *= Math.pow(cons(p.m - q.mid), 1.1);
+        if (near(p.m, q.mid)) v *= .25;
+      }
+      if (R.role === "bell") {                       // above the lead: fit it, never double it
+        if (q.mid != null) v *= Math.pow(cons(p.m - q.mid), .8);
+        if (q.lead != null) {
+          v *= Math.pow(cons(p.m - q.lead), 1.1);
+          if (near(p.m, q.lead)) v *= .25;
+        }
+      }
+      lw += Math.log(v + 1e-12);
+    }
+    let w = Math.exp(lw / per.length);
+    if (o.prev) {
+      w *= melodic(p, o.prev, R.role, o.lastLeap, pool);
+      if (near(p.m, o.prev.m)) w *= R.role === "bass" ? Math.pow(.8, Math.max(0, (o.run || 1) - 1)) : Math.pow(.5, o.run || 1);
+    }
+    if (o.next) w *= .45 + .55 * melodic(o.next, p, R.role, 0, pool);   // lead back into the loop
+    const z = (p.m - center) / R.spread;
+    return w * Math.exp(-z * z);
+  });
+}
+// What the bass and mid play at each pattern position, following each lane's own loop.
+// Positions past the pattern end are filled too, for lane steps the pattern never reaches.
+export function voiceRefs(tracks, steps) {
+  const G = Math.max(steps, MAXL), T = tracks;
+  const bassAt = Array(G).fill(null), midAt = Array(G).fill(null);
+  const b = T[0];
+  if (b && b.notes) {
+    const L = b.len, held = Array(L).fill(null);
+    let last = null;
+    for (let i = 0; i < L; i++) if (isNote(b, i)) last = b.notes[i].m;   // the loop's last note carries into its start
+    for (let i = 0; i < L; i++) { if (isNote(b, i)) last = b.notes[i].m; held[i] = last; }
+    for (let g = 0; g < G; g++) bassAt[g] = held[g % L];
+  }
+  const md = T[1];
+  if (md && md.notes) for (let g = 0; g < G; g++) { const i = g % md.len; if (isNote(md, i)) midAt[g] = md.notes[i].m; }
+  return { bassAt, midAt };
+}
+// Notes, velocities and durations for steps 0..len-1 of lane k in an M-step pattern; steps past
+// its length are cleared and get notes when the lane grows over them.
+export function genNotes(k, tr, ctx, harmony, rf, M) {
+  const R = ROLE[k], L = tr.len, pool = poolFor(ctx, R.lo, R.hi);
+  tr.notes.fill(null);
+  const hits = [];
+  for (let i = 0; i < L; i++) if (tr.gates[i]) hits.push(i);
+  let prev = null, lastLeap = 0, first = null, run = 0;
+  hits.forEach((step, h) => {
+    const oc = occ(step, L, M);
+    const newBar = h === 0 || Math.floor(hits[h - 1] / 16) !== Math.floor(step / 16);
+    let c = null;
+    if (R.role === "bass" && newBar && Math.random() < .85) {          // anchor each bar on the chord root...
+      const js = new Set(oc.map(g => chordAt(harmony, g).j));
+      if (js.size === 1) {                                              // ...when it meets the same chord every time
+        const j = oc.length ? chordAt(harmony, oc[0]).j : 0;
+        const roots = pool.filter(p => p.d.ai === j);
+        if (roots.length) c = roots.length > 1 && Math.random() < .2 ? roots[1] : roots[0];
+      }
+    }
+    if (!c) {
+      const isLast = h === hits.length - 1 && hits.length > 2;
+      const ws = noteWeights(k, pool, { occ: oc, prev, lastLeap, run, next: isLast ? first : null, isFirst: h === 0, refs: rf }, harmony, ctx);
+      c = wpick(pool, ws.map(w => Math.pow(w, R.tau)));
+    }
+    if (prev) lastLeap = c.m - prev.m;
+    run = prev && near(c.m, prev.m) ? run + 1 : 1;
+    prev = c;
+    if (!first) first = c;
+    tr.notes[step] = c;
+    tr.vel[step] = clamp(.7 + .3 * BEAT[step % 16] + rand(-.06, .06), .45, 1);
+  });
+  hits.forEach(step => { tr.dur[step] = genDur(R, step, gapIn(tr, step)); });
+}

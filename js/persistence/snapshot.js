@@ -21,10 +21,11 @@ export const canRestore = d => !!(d && (d.v === 1 || d.v === 2));
 
 // v1 (16/32 steps, no lengths or durations) loads too: every lane gets the pattern length and
 // each note is held until the next one, up to its role's hold, as v1 played it.
+// Saves with 3 lanes (before the Bell) load with a new Bell lane fitted to them.
 export function restore(session, d) {
   try {
     const sc = SCALES.find(s => s.key === d.scale);
-    if (!sc || !Array.isArray(d.tracks) || d.tracks.length !== 3) return false;
+    if (!sc || !Array.isArray(d.tracks) || d.tracks.length < 3 || d.tracks.length > ROLE.length) return false;
     const v1 = d.v === 1;
     session.steps = MASTERS.includes(+d.steps) ? +d.steps : 16;
     session.bpm = clamp(+d.bpm || 124, 70, 170);
@@ -48,6 +49,7 @@ export function restore(session, d) {
       tr.gates.forEach((g, i) => { if (isNote(tr, i) && !(tr.dur[i] >= 1)) tr.dur[i] = Math.min(gapIn(tr, i), ROLE[k].hold); });
       return tr;
     });
+    session.fillMissingTracks();                 // saves from before the Bell lane get a fresh one
     return true;
   } catch (e) { return false; }
 }

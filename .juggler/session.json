@@ -12,6 +12,50 @@
     {
       "content": "so it is ready to commit and push? how many of weekyl usage did we burn?",
       "attachments": []
+    },
+    {
+      "content": "Leave the commit to me",
+      "attachments": []
+    },
+    {
+      "content": "are the lines of code increased?",
+      "attachments": []
+    },
+    {
+      "content": "how are melodies from scales generated ? just randomly? or something more special",
+      "attachments": []
+    },
+    {
+      "content": "if we would add one more track (it will output on midich 5) - whhat basic instrument could we load, something with a metallic like timber but still lightweight",
+      "attachments": []
+    },
+    {
+      "content": "lets go",
+      "attachments": []
+    },
+    {
+      "content": "ok I commit - where I find the line to change main background color to black?",
+      "attachments": []
+    },
+    {
+      "content": "there is a mistake on the + - button in the tracks they now add steps. they should offset pattern left (-) and right (+)",
+      "attachments": []
+    },
+    {
+      "content": "cool",
+      "attachments": []
+    },
+    {
+      "content": "modified:   ../.juggler/Untitled 1--conv_cp613ivef/claude_session.json\n\tmodified:   ../.juggler/Untitled 1--conv_cp613ivef/doc.yjs\n\tdeleted:    ../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794737168264_000000009.json\n\tmodified:   ../.juggler/session.json\n\tmodified:   ../index.html\n\tmodified:   ../js/audio/engine.js\n\tmodified:   ../js/audio/voices.js\n\tmodified:   ../js/midi/midi-output.js\n\tmodified:   ../js/persistence/snapshot.js\n\tmodified:   ../js/sequencer/melody.js\n\tmodified:   ../js/sequencer/roles.js\n\tmodified:   ../js/sequencer/session.js\n\tmodified:   ../js/ui/lane-input.js\n\tmodified:   ../js/ui/lanes-view.js",
+      "attachments": []
+    },
+    {
+      "content": "css git:(main) ✗ git add .                                   \n➜  css git:(main) ✗ git commit -m \"fix offset behaviour\"        \nOn branch main\nYour branch is ahead of 'origin/main' by 1 commit.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add/rm \u003cfile\u003e...\" to update what will be committed)\n  (use \"git restore \u003cfile\u003e...\" to discard changes in working directory)\n\tmodified:   ../.juggler/Untitled 1--conv_cp613ivef/claude_session.json\n\tmodified:   ../.juggler/Untitled 1--conv_cp613ivef/doc.yjs\n\tdeleted:    ../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794737168264_000000009.json\n\tmodified:   ../.juggler/session.json\n\tmodified:   ../index.html\n\tmodified:   ../js/audio/engine.js\n\tmodified:   ../js/audio/voices.js\n\tmodified:   ../js/midi/midi-output.js\n\tmodified:   ../js/persistence/snapshot.js\n\tmodified:   ../js/sequencer/melody.js\n\tmodified:   ../js/sequencer/roles.js\n\tmodified:   ../js/sequencer/session.js\n\tmodified:   ../js/ui/lane-input.js\n\tmodified:   ../js/ui/lanes-view.js\n\nUntracked files:\n  (use \"git add \u003cfile\u003e...\" to include in what will be committed)\n\t../.DS_Store\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/1838fa564f6d0cd2a3fc2f2f1bef461db575fd1415138b8c8333a71cd1c13ff1.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/24eb80c7c983c01e96505a931c72a6fcbb2f7dd46625f43ac39f5c733a8e3e43.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/29d053985367c2432a6b840fcb3acafd71607b4ed0b6e9f0051c0202b0f1a68d.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/336c755a321c0a46d2dbaeddb9c1aa882aca4e1ecbfb6143658288d86987398b.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/4a4f6dd6532f84a9ae8e3e2bbfd0127d9d70bc70437ca68ea9ab54d6b1f4e7de.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/4c8db0c8950e8eae0172040f410f29723618f8e8bd15ee5795a7a3af8684f2eb.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/581b3b71287846b443638b2a190c800023357acf1c8c459fa908adcac09c21c4.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/5ba024194a024d2725e782214e1bbec501cd50b4dbf094a137c7264ece47134a.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/6a4bd66a77ced95fbdc35e6031e6272eb1db2d784714c58cecf544a2ebddea6e.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/830243c9707e89ed6904fe4b6a5d1f76205f34e42070f38af60bda7dbafc187c.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/87dce5c8af382af59b6f280a49d889a1116054fa586fd352b53f0a023b431be4.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/88aef0dc17bdb87f3c1a9571f4e6712a1fc394f7112976b0153cda8ec48097e5.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/90bc46f65e82444f7d89e35c17ed83b4e653ba47f30e719bc12ac15ef030c368.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/9c8e1ed2f3165a51161305d712ca5db6f269053eba1f38c43150978afbdb66fb.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/abd41f8a70aee1c8f679d57e80a03ec0452408674fdcca833545367adde9336c.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/b1be3cc2345a2bd1d10793991a2f0787271989b667c03a7f715472b0a4811cd5.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/bbcdbc275f92e30f08c19c4dbb3a978b36a390ec0ed21493ff2f3ba282834891.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/bca64bab83ce3d9a890956546c4b0a139593b6b634e808a16e0786452235f9bf.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/c2281a7fcc1552bbcbe0b820e96dac124438fca2965228d737dd80e5ed58eaeb.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/c51373ef592229a1f5fec8a9d02b0bc9de0f2f40f362ab0bfd785a84f179acec.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/ce206f17cf1fa12600a0e2218ca36847b14e826a2b882589c536d0b475f2386b.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/d99cceb052f6710451423610eb9605487753ffa9dfb0627895aa7bd61e9b51d4.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/df4c97a88b318f3435e91e687919d4289d7bfbc7c1e0d89e73154cd3da914e97.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/e6c5dbb2d175cb650410b17a2cc6419dece85bb78a6032f7bf4fdb28faa04fc6.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/e7363bc04878255e35559348f74fea78c6dcc5afa25b7e4fc75a22ab61ea2c1a.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/efd02e4edc9ec5a1390615b399a86ebcd5df03c5d9dca62bb11982012fa74d78.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/f093f6519b13f42dcd2cc4fa8935dfb2b283ffb42552e8719b7ea30d07555840.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/assets/f26197d114347970cd2f549f6b715d3eea1e233c07c33fba37d35b69a86aa8d1.txt\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794743478708_000000212.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794743556216_000000219.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794743564992_000000224.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794743969641_000000231.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745386690_000000238.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745457474_000000245.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745503967_000000251.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745528057_000000259.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745545305_000000269.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745550031_000000274.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745563555_000000280.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794745574352_000000289.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746094115_000000295.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746113172_000000301.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746157643_000000308.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746161022_000000313.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746684668_000000320.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746701244_000000326.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746712908_000000334.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746721918_000000343.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746821366_000000349.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746837945_000000356.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746878152_000000363.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746884101_000000368.json\n\t../.juggler/Untitled 1--conv_cp613ivef/txns/txn_1794746896540_000000373.json still",
+      "attachments": []
+    },
+    {
+      "content": "so what I shoud do now?",
+      "attachments": []
     }
   ],
   "metadata": {

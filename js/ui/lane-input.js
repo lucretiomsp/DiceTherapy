@@ -1,7 +1,7 @@
 import { dragDur, effDur, ownerOf } from "../sequencer/timeline.js";
 
 // Input controller for the sequencer lanes (event delegation on the lanes host).
-// Step edits go straight to the session and redraw one lane; everything that reaches beyond the
+// Step edits and pattern shifts go straight to the session and redraw one lane; everything that reaches beyond the
 // lanes (mute, reroll, lane length) is handed to `actions`.
 //
 // actions: { toggleMute(k), rerollTrack(k, button), setTrackLen(k, n), setGate(k, v) }
@@ -45,8 +45,8 @@ export class LaneInput {
     if (e.target.closest(".mute")) { this.actions.toggleMute(k); return; }
     const rr = e.target.closest(".reroll");
     if (rr) { this.actions.rerollTrack(k, rr); return; }
-    const lb = e.target.closest("[data-len]");
-    if (lb && k >= 0) { this.actions.setTrackLen(k, this.session.tracks[k].len + +lb.dataset.len); return; }
+    const sh = e.target.closest("[data-shift]");
+    if (sh && k >= 0) { if (this.session.rotateTrack(k, +sh.dataset.shift)) this.view.updateLane(k); return; }
     // steps: pointers act on pointerup below; a click with detail 0 comes from the keyboard
     const cell = e.target.closest("button.cell");
     if (cell && k >= 0 && e.detail === 0 && !(cell === this.#lastPtrCell && performance.now() - this.#lastPtr < 500)) this.#toggleStep(k, +cell.dataset.i);

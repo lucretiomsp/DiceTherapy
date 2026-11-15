@@ -64,7 +64,7 @@ export class AudioEngine {
     const dly = c.createDelay(2), fb = c.createGain(), dlp = c.createBiquadFilter(), wet = c.createGain();
     fb.gain.value = .32; dlp.type = "lowpass"; dlp.frequency.value = 2600; wet.gain.value = .5;
     dly.connect(dlp); dlp.connect(fb); fb.connect(dly); dlp.connect(wet); wet.connect(synth);
-    const pans = [0, -.22, .22], sends = [0, .2, .28];
+    const pans = [0, -.22, .22, .35], sends = [0, .2, .28, .4];     // per lane: Saw, Square, Tri, Bell
     const tracks = VOICES.map((_, k) => {
       const g = c.createGain();
       g.gain.value = muted[k] ? 0 : 1;

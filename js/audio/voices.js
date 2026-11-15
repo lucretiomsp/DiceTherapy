@@ -62,8 +62,37 @@ function tri(c, out, t, m, dur, vel) {
   cleanup(o, g);
 }
 
-// in the order of ROLE: Saw, Square, Tri
-export const VOICES = [saw, square, tri];
+// Two-operator FM bell: a sine carrier whose pitch is shaken by a sine modulator at an inharmonic
+// ratio. The carrier keeps the pitch exact (microtones stay in tune); the ratio gives the metal.
+// ratio: 3.5 bell, 1.4 gong, 7 glockenspiel, 2 electric piano (not metallic).
+export const BELL = {
+  ratio: 3.5,
+  index: [2, 3],       // modulation depth at the strike, times the frequency: base + per velocity
+  indexRest: .3,       // depth it settles to
+  brightDecay: .08,    // seconds: how fast the strike mellows
+  decay: .35,          // seconds: natural ring-out
+  level: .22,
+};
+function bell(c, out, t, m, dur, vel) {
+  const B = BELL, f = mtof(m), end = t + Math.max(.05, dur);
+  const car = c.createOscillator(), mod = c.createOscillator(), mg = c.createGain(), g = c.createGain();
+  car.frequency.setValueAtTime(f, t);
+  mod.frequency.setValueAtTime(f * B.ratio, t);
+  mg.gain.setValueAtTime(f * (B.index[0] + B.index[1] * vel), t);
+  mg.gain.setTargetAtTime(f * B.indexRest, t, B.brightDecay);
+  const pk = B.level * vel;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(pk, t + .002);
+  g.gain.setTargetAtTime(0, t + .002, B.decay);
+  g.gain.setTargetAtTime(0, end, .06);
+  mod.connect(mg); mg.connect(car.frequency);
+  car.connect(g); g.connect(out);
+  car.start(t); mod.start(t); car.stop(end + .4); mod.stop(end + .4);
+  cleanup(car, g); cleanup(mod, mg);
+}
+
+// in the order of ROLE: Saw, Square, Tri, Bell
+export const VOICES = [saw, square, tri, bell];
 
 // The kick: a pitched sine with a noise click, ducking the synth bus. bus: {kick, synth, noise}
 export function kick(c, bus, t, accent) {

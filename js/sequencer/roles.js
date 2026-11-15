@@ -1,12 +1,15 @@
 import { clamp, rand } from "../core/util.js";
 
-// The three synth lanes. Index k is used everywhere: track k, voice k, MIDI channel k + 1.
+// The synth lanes. Index k is used everywhere: track k, voice k, MIDI_CH[k].
+// role: bass, mid, lead, bell — each upper role is fitted against the lanes below it.
 // hold: notes usually last until the next one, up to this many steps; maxDur, longP: occasional
 // long notes, likelier on strong beats; shortP: chance of a single step; gf: gate range (gateTimes)
 export const ROLE = [
   { key: "saw", name: "Saw", role: "bass", lo: 24, hi: 48, spread: 10, tau: 1.45, hold: 2, maxDur: 4, longP: .15, shortP: .35, gf: [.55, .9] },
   { key: "square", name: "Square", role: "mid", lo: 48, hi: 70, center: 59, spread: 7, tau: 1.2, hold: 2, maxDur: 4, longP: .2, shortP: .3, gf: [.45, .85] },
   { key: "tri", name: "Tri", role: "lead", lo: 62, hi: 86, center: 73, spread: 8, tau: 1.15, hold: 3, maxDur: 8, longP: .35, shortP: .15, gf: [.6, .95] },
+  // a sparkle line above the lead: short gates, the bell's own decay gives it length
+  { key: "bell", name: "Bell", role: "bell", lo: 72, hi: 96, center: 84, spread: 7, tau: 1.3, hold: 1, maxDur: 6, longP: .25, shortP: .5, gf: [.3, .7] },
 ];
 // Metric weight of each 16th in a bar
 export const BEAT = [1, .2, .45, .25, .75, .2, .45, .25, .9, .2, .45, .25, .75, .2, .45, .25];

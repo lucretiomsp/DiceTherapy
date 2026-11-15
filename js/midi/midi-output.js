@@ -3,10 +3,10 @@ import { loadPref, savePref } from "../core/storage.js";
 import { clamp } from "../core/util.js";
 import { LOOKAHEAD } from "../audio/timing.js";
 
-// Saw, Square, Tri go out on MIDI channels 1, 2, 3. Each lane is monophonic on its own
+// Saw, Square, Tri, Bell go out on MIDI channels 1, 2, 3, 5. Each lane is monophonic on its own
 // channel, so microtones (24-TET, Partch JI) ride on a per-note pitch bend.
 // MIDI clock (24 ppqn, Start, Stop) has its own port, which can also be the notes port.
-export const MIDI_CH = [0, 1, 2];                // 0-based: ch 1, 2, 3
+export const MIDI_CH = [0, 1, 2, 4];             // 0-based: ch 1, 2, 3, 5 (one per ROLE)
 const BEND_RANGE = 2;                            // semitones, also sent to the synth as RPN 0
 const MIDI_KEY = "diceTherapy.midiOut";          // last port used
 const CLOCK_KEY = "diceTherapy.clockOut";        // last clock port used
@@ -22,8 +22,8 @@ export class MidiOutput extends Emitter {
   #run = false;        // clock: Start sent
   #tickAt = 0;         // time of the last clock
   #stopAt = 0;         // time of the last Stop
-  #pend = [null, null, null];
-  #bend = [null, null, null];
+  #pend = MIDI_CH.map(() => null);   // per lane: the note waiting for its note-off
+  #bend = MIDI_CH.map(() => null);   // per lane: the last pitch bend sent
 
   constructor(audio) {
     super();
@@ -129,7 +129,7 @@ export class MidiOutput extends Emitter {
     out = out || null;
     if (this.out && this.out !== out) this.flush(Infinity);
     this.out = out;
-    this.#bend = [null, null, null];
+    this.#bend = MIDI_CH.map(() => null);
     if (out) MIDI_CH.forEach(ch => { const c = 0xB0 | ch; this.#send([c, 101, 0, c, 100, 0, c, 6, BEND_RANGE, c, 38, 0, c, 101, 127, c, 100, 127]); });
     else if (!this.local) this.local = true;                          // without MIDI, never leave the synths silent
     if (remember) savePref(MIDI_KEY, out ? out.name : "off");
