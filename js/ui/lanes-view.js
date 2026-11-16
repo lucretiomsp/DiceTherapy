@@ -67,6 +67,7 @@ export class LanesView {
       this.#heads.push(-1);
       this.fillGrid(k);
     }
+    this.#paintGroups();
   }
 
   // (re)build a lane's cells: the ruler shows the whole pattern with the chord of each bar,
@@ -149,6 +150,13 @@ export class LanesView {
   // Mute and solo touch every lane at once: repaint just the M and S keys and the silenced look.
   updateMix() {
     for (let k = 0; k < LANES.length; k++) this.#paintMix(k, this.#lanes[k + 1]);
+    this.#paintGroups();
+  }
+  // M ALL / S ALL: lit when every lane of the pane has it, outlined when some do
+  #paintGroups() {
+    document.querySelectorAll(".group-keys button").forEach(b => {
+      b.setAttribute("aria-pressed", this.session.groupState(b.dataset.group, b.dataset.act === "groupMute" ? "muted" : "solo"));
+    });
   }
   // A lane that is not heard (muted, or left out by a solo) goes purple.
   #paintMix(k, lane) {

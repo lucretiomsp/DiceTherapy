@@ -113,6 +113,18 @@ export class Session {
     tr.solo = !tr.solo;
     return tr.solo;
   }
+  // A whole pane at once (group "synth" or "drum"): if every lane in it is already muted (or
+  // soloed), switch them all off, otherwise switch them all on.
+  groupLanes(group) { return this.tracks.map((_, k) => k).filter(k => isDrum(k) === (group === "drum")); }
+  toggleGroup(group, prop) {
+    const ks = this.groupLanes(group), all = ks.every(k => !!this.tracks[k][prop]);
+    ks.forEach(k => { this.tracks[k][prop] = !all; });
+  }
+  // "true" when every lane in the group has it, "mixed" when some do, "false" when none
+  groupState(group, prop) {
+    const n = this.groupLanes(group).filter(k => !!this.tracks[k][prop]).length;
+    return n === 0 ? "false" : n === this.groupLanes(group).length ? "true" : "mixed";
+  }
   get anySolo() { return this.tracks.some(t => t.solo); }
   // Whether lane k is heard: not muted, and soloed whenever any lane is. Mute wins.
   isAudible(k) {

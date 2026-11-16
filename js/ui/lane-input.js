@@ -4,7 +4,7 @@ import { dragDur, effDur, ownerOf } from "../sequencer/timeline.js";
 // Step edits and pattern shifts go straight to the session and redraw one lane; everything that reaches beyond the
 // lanes (mute, reroll, lane length) is handed to `actions`.
 //
-// actions: { toggleMute(k), toggleSolo(k), rerollTrack(k, button), setTrackLen(k, n), setGate(k, v) }
+// actions: { toggleMute(k), toggleSolo(k), groupMute(group), groupSolo(group), rerollTrack(k, button), setTrackLen(k, n), setGate(k, v) }
 export class LaneInput {
   #drag = null;        // pointer press on a step, becomes a duration drag once it moves
   #lastPtr = 0;        // when and where the last pointer tap ended, to drop the click that follows
@@ -25,6 +25,8 @@ export class LaneInput {
       host.addEventListener("contextmenu", e => { if (e.target.closest("button.cell")) e.preventDefault(); });
       host.addEventListener("keydown", this.#onKeyDown);
     }
+    // M ALL / S ALL in the pane headers
+    document.querySelectorAll(".group-keys button").forEach(b => b.addEventListener("click", () => this.actions[b.dataset.act](b.dataset.group)));
     addEventListener("pointermove", this.#onPointerMove);
     addEventListener("pointerup", this.#onPointerUp);
     addEventListener("pointercancel", e => { if (this.#drag && e.pointerId === this.#drag.id) this.#drag = null; });

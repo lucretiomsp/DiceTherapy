@@ -45,6 +45,16 @@
       </dl>
     </section>
 
+    <section class="panel slots" aria-labelledby="slotsLbl">
+      <div class="row">
+        <span class="lbl big" id="slotsLbl">Patterns</span>
+        <span class="grow"></span>
+        <span class="slot-info" id="slotInfo" aria-live="polite"></span>
+        <button type="button" class="btn" id="slotSave">Save</button>
+      </div>
+      <div class="slot-grid" id="slotGrid" role="group" aria-labelledby="slotsLbl"></div>
+    </section>
+
     <section class="panel controls" aria-label="Pattern settings">
       <div class="row">
         <span class="lbl big" id="stepsLbl">Pattern len</span>
@@ -92,9 +102,18 @@
   </div>
 
   <main class="main">
-    <section class="panel seq" id="lanes" aria-label="Melody lanes"></section>
+    <section class="panel seq melodies" aria-labelledby="melodiesTitle">
+      <div class="pane-head">
+        <h2 class="pane-title" id="melodiesTitle">Melodies <small>8 synths on the scale and its chords</small></h2>
+        <div class="group-keys" role="group" aria-label="All melody lanes"><button type="button" class="ib wide mute" data-group="synth" data-act="groupMute" aria-label="Mute all melody lanes">M ALL</button><button type="button" class="ib wide solo" data-group="synth" data-act="groupSolo" aria-label="Solo all melody lanes">S ALL</button></div>
+      </div>
+      <div id="lanes"></div>
+    </section>
     <section class="panel seq drums" aria-labelledby="drumsTitle">
-      <h2 class="pane-title" id="drumsTitle">Drums <small>every hit is C3 · the dice change only the rhythm</small></h2>
+      <div class="pane-head">
+        <h2 class="pane-title" id="drumsTitle">Drums <small>every hit is C3 · the dice change only the rhythm</small></h2>
+        <div class="group-keys" role="group" aria-label="All drum lanes"><button type="button" class="ib wide mute" data-group="drum" data-act="groupMute" aria-label="Mute all drum lanes">M ALL</button><button type="button" class="ib wide solo" data-group="drum" data-act="groupSolo" aria-label="Solo all drum lanes">S ALL</button></div>
+      </div>
       <div id="drumLanes"></div>
     </section>
     <footer class="foot">
@@ -102,7 +121,8 @@
       <p><b>Lengths.</b> The pattern (16 to 128 steps) restarts every lane when it ends. Each lane loops on its own length, 3 to 64 steps, so lanes can drift against each other; a note that repeats over several chords is chosen to fit all of them. Lanes that match the pattern length follow it when you change it.</p>
       <p><b>Durations.</b> Each note lasts a number of steps, at most until the next note of its lane, so lanes stay monophonic. Tap a step to switch it. Drag a note to the right to hold it longer, drag back to shorten it, or use Shift + arrow keys. Tap a held step to start a new note there. Shift − and + move a lane's whole pattern one step left or right inside its loop. Gate is the share of the length that sounds. Both export to Coypu as <code>durations:</code> and <code>gateTimes:</code>.</p>
       <p><b>Notation.</b> C4 = MIDI 60. ↑ ↓ raise or lower a quarter tone. Partch notes show cents from 12-TET.</p>
-      <p><b>MIDI.</b> Every lane goes out on the channel of its own number: melodies on 1 to 8, drums on 9 to 16, each drum always as C3 (MIDI 48). Muted lanes, and lanes left out by a solo (S), send nothing. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Clock out sends MIDI clock (24 ppqn) with Start and Stop, to its own port or to the notes port: the other device starts with step 1, or on the next bar line if you pick it while playing, and stops when the audio does. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
+      <p><b>MIDI.</b> Every lane goes out on the channel of its own number: melodies on 1 to 8, drums on 9 to 16, each drum always as C3 (MIDI 48). Muted lanes, and lanes left out by a solo (S), send nothing. M ALL and S ALL on each pane mute or solo all of its lanes at once. Microtones are sent as pitch bend, with the bend range set to ±2 semitones by RPN. Clock out sends MIDI clock (24 ppqn) with Start and Stop, to its own port or to the notes port: the other device starts with step 1, or on the next bar line if you pick it while playing, and stops when the audio does. Needs Chrome, Edge or Firefox over HTTPS; Safari and iOS have no Web MIDI.</p>
+      <p><b>Patterns.</b> 16 slots, each holding all 16 tracks; scale, root, tempo, pattern length and chords are shared by all of them. Pick a slot to switch: the one you leave is saved first, an empty one starts as a copy, and while playing the switch waits for the next bar line (pick the playing slot again to cancel). Save stores the playing slot now. Slots live in this browser and come back on reload; notes from a slot made under another scale move to the nearest note of the current one.</p>
       <p><b>Sources.</b> Scales: SuperCollider <code>Scale.directory</code>. Rhythms: the world rhythms of Coypu, random ones follow <code>randomTrigsWithProbability:</code>.</p>
     </footer>
   </main>

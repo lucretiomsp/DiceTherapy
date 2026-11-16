@@ -4,7 +4,7 @@
   .top{grid-column:1/-1}
   .brand{font-size:40px}
   .side{display:flex;flex-direction:column}
-  .transport{order:1}.hero{order:2}.controls{order:3}.keys{order:4}
+  .transport{order:1}.hero{order:2}.slots{order:3}.controls{order:4}.keys{order:5}
   .panel.hero{border-top:2px solid var(--print);padding-top:14px}
   .die{width:100px;height:100px}
   .tb{font-size:17px}

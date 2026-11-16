@@ -8,7 +8,7 @@ import { LOOKAHEAD } from "./timing.js";
 // the audio engine and the MIDI output ahead of time.
 //
 // Events: "state" (playing: boolean), "playhead" (pattern step heard now, -1 when stopped),
-//         "notice" (message for the user).
+//         "bar" (pattern step of a bar line about to be scheduled), "notice" (message for the user).
 export class Transport extends Emitter {
   #playing = false;
   #nextT = 0;          // context time of the next step to schedule
@@ -75,6 +75,7 @@ export class Transport extends Emitter {
     this.midi.timebase();
     if (this.#nextT < now - .05) this.#nextT = now + .03;              // resumed after an interruption
     while (this.#nextT < now + LOOKAHEAD) {
+      if (this.#stepIdx % 16 === 0) this.emit("bar", this.#stepIdx);   // listeners may swap the pattern here
       this.#playStep(this.#stepIdx, this.#nextT);
       this.#vq.push({ i: this.#stepIdx, t: this.#nextT });
       this.#nextT += this.session.stepDuration;
