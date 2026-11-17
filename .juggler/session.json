@@ -116,6 +116,10 @@
     {
       "content": "only the tracks at the moment. tempo, scale , root are kind of 'globals; - question 2 I go with a copy . 3 song mode not for now",
       "attachments": []
+    },
+    {
+      "content": "are the muste drums mute synths ready?",
+      "attachments": []
     }
   ],
   "metadata": {
@@ -123,12 +127,12 @@
   },
   "windowStates": {
     "main": {
-      "x": 0,
-      "y": 0,
-      "width": 0,
-      "height": 0,
-      "hasPos": false,
-      "maximised": false,
+      "x": 120,
+      "y": 151,
+      "width": 1440,
+      "height": 899,
+      "hasPos": true,
+      "maximised": true,
       "fullscreen": false,
       "ui": {
         "juggler-info-cards-hidden": {
@@ -138,6 +142,15 @@
         },
         "juggler-tool-grouping": false
       }
+    }
+  },
+  "ui": {
+    "juggler-guidance": {
+      "dismissed": {},
+      "started": {
+        "slash-commands": 1794823763955
+      },
+      "teachDismissals": 0
     }
   },
   "boards": {
